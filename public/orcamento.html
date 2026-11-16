@@ -1,0 +1,553 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orçamento Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f4f3;color:#292929;font-family:Arial,sans-serif}
+header{background:#121111;color:white;padding:17px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header h1{font-size:21px;margin:0}
+header h1 span{color:#65c466}
+button{cursor:pointer;font-family:inherit}
+.menu{background:#252525;color:white;border:1px solid #555;padding:10px 16px;border-radius:7px;font-weight:bold}
+.container{max-width:1150px;margin:auto;padding:20px}
+.familia{font-size:14px;color:#666;margin-bottom:18px}
+.painel{background:white;border-radius:10px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px #0000000b}
+.filtros{display:flex;align-items:end;gap:13px;flex-wrap:wrap}
+.campo{display:flex;flex-direction:column;gap:7px;flex:1;min-width:170px}
+label{font-size:13px;font-weight:bold}
+input,select{width:100%;padding:11px;border:1px solid #ccc;border-radius:7px;background:white;font-size:14px}
+.btn{border:0;border-radius:7px;padding:12px 16px;font-weight:bold;font-size:13px}
+.verde{background:#65c466;color:#102810}
+.preto{background:#121111;color:white}
+.vermelho{background:#dc5252;color:white}
+.titulo{font-size:18px;margin:5px 0 15px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:20px}
+.card{background:white;border-radius:10px;padding:17px;box-shadow:0 2px 8px #0000000b}
+.card small{display:block;color:#777;margin-bottom:9px}
+.card strong{font-size:21px}
+.verde-texto{color:#239447}
+.azul-texto{color:#2678c9}
+.laranja-texto{color:#d18b21}
+.formulario{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:12px;align-items:end}
+.lista{display:flex;flex-direction:column;gap:13px}
+.item{border:1px solid #e8e8e8;border-radius:9px;padding:15px}
+.item-topo{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.item-topo strong{font-size:15px}
+.valores{font-size:13px;color:#666;margin-top:9px;display:flex;gap:15px;flex-wrap:wrap}
+.barra-fundo{height:13px;background:#e9ecea;border-radius:20px;overflow:hidden;margin-top:12px}
+.barra{height:100%;border-radius:20px;transition:width .3s}
+.acoes-item{display:flex;gap:7px;margin-top:12px}
+.acoes-item button{padding:7px 11px;border:0;border-radius:6px;font-size:12px;font-weight:bold}
+.editar{background:#e7f0fb;color:#2866a8}
+.excluir{background:#fdeaea;color:#b73535}
+.situacao{font-size:12px;font-weight:bold;padding:6px 9px;border-radius:20px;background:#edf0ed}
+.normal{color:#238547;background:#e7f5eb}
+.atencao{color:#a56b0b;background:#fff3d9}
+.estourado{color:#bd3434;background:#fde8e8}
+.vazio{text-align:center;padding:25px;color:#888}
+#carregando{text-align:center;padding:30px;color:#777}
+#mensagem{display:none;padding:13px;background:#fff0ed;color:#a33;border-radius:8px;margin-bottom:15px}
+@media(max-width:750px){
+ .container{padding:12px}
+ .cards{grid-template-columns:1fr 1fr}
+ .formulario{grid-template-columns:1fr 1fr}
+ .formulario .campo:first-child{grid-column:1/-1}
+ .formulario button{grid-column:1/-1}
+}
+@media(max-width:450px){
+ header{padding:14px}
+ header h1{font-size:17px}
+ .cards{gap:8px}
+ .card{padding:12px}
+ .card strong{font-size:17px}
+ .formulario{grid-template-columns:1fr}
+ .formulario .campo:first-child,.formulario button{grid-column:auto}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>💰 <span>Orçamento</span> Familiar</h1>
+    <button class="menu" onclick="voltarMenu()">☰ MENU</button>
+</header>
+
+<div class="container">
+
+    <div class="familia" id="nomeFamilia">Família: carregando...</div>
+
+    <div id="mensagem"></div>
+    <div id="carregando">Carregando orçamento...</div>
+
+    <div id="conteudo" style="display:none">
+
+        <div class="painel filtros">
+            <div class="campo">
+                <label for="filtroMes">Mês do orçamento</label>
+                <input type="month" id="filtroMes" onchange="carregarMes()">
+            </div>
+        </div>
+
+        <div class="cards">
+            <div class="card">
+                <small>Limites definidos</small>
+                <strong class="azul-texto" id="totalLimites">R$ 0,00</strong>
+            </div>
+
+            <div class="card">
+                <small>Despesas comprometidas</small>
+                <strong class="laranja-texto" id="totalGastos">R$ 0,00</strong>
+            </div>
+
+            <div class="card">
+                <small>Saldo disponível</small>
+                <strong class="verde-texto" id="totalRestante">R$ 0,00</strong>
+            </div>
+        </div>
+
+        <div class="painel">
+            <h2 class="titulo">➕ Definir orçamento por categoria</h2>
+
+            <div class="formulario">
+                <div class="campo">
+                    <label for="categoria">Categoria</label>
+                    <select id="categoria">
+                        <option value="">Selecione</option>
+                        <option>Alimentação</option>
+                        <option>Moradia</option>
+                        <option>Água</option>
+                        <option>Energia</option>
+                        <option>Internet</option>
+                        <option>Transporte</option>
+                        <option>Saúde</option>
+                        <option>Educação</option>
+                        <option>Lazer</option>
+                        <option>Salário</option>
+                        <option>Renda extra</option>
+                        <option>Outros</option>
+                    </select>
+                </div>
+
+                <div class="campo">
+                    <label for="limite">Limite mensal (R$)</label>
+                    <input type="number" id="limite" min="0.01" step="0.01" placeholder="Ex.: 1000,00">
+                </div>
+
+                <div class="campo">
+                    <label for="observacao">Observação (opcional)</label>
+                    <input type="text" id="observacao" maxlength="100" placeholder="Ex.: Gastos da família">
+                </div>
+
+                <button class="btn verde" onclick="salvarOrcamento()">💾 SALVAR</button>
+            </div>
+
+            <input type="hidden" id="editandoId">
+        </div>
+
+        <h2 class="titulo">📊 Acompanhamento por categoria</h2>
+
+        <div class="painel">
+            <div id="listaOrcamentos" class="lista"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+let auth;
+let db;
+let familiaId = null;
+let orcamentos = [];
+let despesas = [];
+
+function voltarMenu(){
+    window.location.href = "dashboard.html";
+}
+
+function dinheiro(valor){
+    return Number(valor || 0).toLocaleString("pt-BR",{
+        style:"currency",
+        currency:"BRL"
+    });
+}
+
+function escapar(texto){
+    return String(texto ?? "").replace(/[&<>"']/g,function(c){
+        return {
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            '"':"&quot;",
+            "'":"&#39;"
+        }[c];
+    });
+}
+
+function mostrarMensagem(texto){
+    const el = document.getElementById("mensagem");
+    el.textContent = texto;
+    el.style.display = "block";
+}
+
+function ocultarMensagem(){
+    document.getElementById("mensagem").style.display = "none";
+}
+
+function mesAtual(){
+    const hoje = new Date();
+    return hoje.getFullYear()+"-"+String(hoje.getMonth()+1).padStart(2,"0");
+}
+
+function referenciaMes(){
+    return document.getElementById("filtroMes").value;
+}
+
+function colecaoOrcamentos(){
+    return db.collection("familias")
+        .doc(familiaId)
+        .collection("financeiro_orcamentos");
+}
+
+function colecaoFinanceiro(){
+    return db.collection("familias")
+        .doc(familiaId)
+        .collection("financeiro");
+}
+
+function idOrcamento(mes,categoria){
+    return mes+"_"+encodeURIComponent(categoria);
+}
+
+async function carregarMes(){
+    ocultarMensagem();
+
+    try{
+        const mes = referenciaMes();
+
+        if(!mes) return;
+
+        const [orcSnapshot, despSnapshot] = await Promise.all([
+            colecaoOrcamentos().where("mes","==",mes).get(),
+            colecaoFinanceiro().get()
+        ]);
+
+        orcamentos = orcSnapshot.docs.map(doc=>({
+            id:doc.id,
+            ...doc.data()
+        }));
+
+        despesas = despSnapshot.docs.map(doc=>({
+            id:doc.id,
+            ...doc.data()
+        })).filter(item=>
+            String(item.data || "").startsWith(mes) &&
+            item.tipo === "DESPESA"
+        );
+
+        atualizarTela();
+
+    }catch(erro){
+        console.error(erro);
+        mostrarMensagem("Não foi possível carregar os dados. Verifique as permissões do Firestore.");
+    }
+}
+
+function calcularCategoria(categoria){
+    const itens = despesas.filter(item=>
+        (item.categoria || "Sem categoria") === categoria
+    );
+
+    const pago = itens
+        .filter(item=>item.status==="PAGO")
+        .reduce((s,item)=>s+Number(item.valor||0),0);
+
+    const pendente = itens
+        .filter(item=>item.status==="PENDENTE")
+        .reduce((s,item)=>s+Number(item.valor||0),0);
+
+    return {
+        pago,
+        pendente,
+        comprometido:pago+pendente
+    };
+}
+
+function atualizarTela(){
+    const lista = document.getElementById("listaOrcamentos");
+
+    let totalLimites = 0;
+    let totalGastos = 0;
+
+    if(!orcamentos.length){
+        lista.innerHTML = `
+            <div class="vazio">
+                Nenhum orçamento definido para este mês.<br>
+                Cadastre uma categoria acima para começar.
+            </div>
+        `;
+    }else{
+        const ordenados = [...orcamentos].sort((a,b)=>
+            String(a.categoria).localeCompare(String(b.categoria),"pt-BR")
+        );
+
+        lista.innerHTML = ordenados.map(item=>{
+            const limite = Number(item.limite||0);
+            const valores = calcularCategoria(item.categoria);
+            const gasto = valores.comprometido;
+            const percentual = limite>0 ? gasto/limite*100 : 0;
+            const largura = Math.min(percentual,100);
+
+            let classe = "normal";
+            let texto = "Dentro do orçamento";
+            let cor = "#65c466";
+
+            if(percentual>=100){
+                classe = "estourado";
+                texto = "Orçamento ultrapassado";
+                cor = "#dc5252";
+            }else if(percentual>=80){
+                classe = "atencao";
+                texto = "Atenção: limite próximo";
+                cor = "#e0a12e";
+            }
+
+            totalLimites += limite;
+            totalGastos += gasto;
+
+            return `
+                <div class="item">
+                    <div class="item-topo">
+                        <strong>${escapar(item.categoria)}</strong>
+                        <span class="situacao ${classe}">${texto}</span>
+                    </div>
+
+                    <div class="valores">
+                        <span>Limite: <b>${dinheiro(limite)}</b></span>
+                        <span>Pago: <b>${dinheiro(valores.pago)}</b></span>
+                        <span>Pendente: <b>${dinheiro(valores.pendente)}</b></span>
+                        <span>Comprometido: <b>${dinheiro(gasto)}</b></span>
+                    </div>
+
+                    <div class="barra-fundo">
+                        <div class="barra"
+                             style="width:${largura}%;background:${cor}"></div>
+                    </div>
+
+                    <div class="valores">
+                        <span>Utilizado: <b>${percentual.toFixed(1).replace(".",",")}%</b></span>
+                        <span>Restante: <b style="color:${limite-gasto<0?"#dc5252":"#239447"}">${dinheiro(limite-gasto)}</b></span>
+                    </div>
+
+                    ${item.observacao ? `<div class="valores">Observação: ${escapar(item.observacao)}</div>` : ""}
+
+                    <div class="acoes-item">
+                        <button class="editar" onclick="editarOrcamento('${item.id}')">✏️ Editar</button>
+                        <button class="excluir" onclick="excluirOrcamento('${item.id}')">🗑️ Excluir</button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    document.getElementById("totalLimites").textContent=dinheiro(totalLimites);
+    document.getElementById("totalGastos").textContent=dinheiro(totalGastos);
+
+    const restante=totalLimites-totalGastos;
+    const el=document.getElementById("totalRestante");
+
+    el.textContent=dinheiro(restante);
+    el.style.color=restante<0?"#dc5252":"#239447";
+}
+
+async function salvarOrcamento(){
+    ocultarMensagem();
+
+    const categoria=document.getElementById("categoria").value;
+    const limite=Number(document.getElementById("limite").value);
+    const observacao=document.getElementById("observacao").value.trim();
+    const mes=referenciaMes();
+    const editandoId=document.getElementById("editandoId").value;
+
+    if(!categoria){
+        alert("Selecione uma categoria.");
+        return;
+    }
+
+    if(!Number.isFinite(limite)||limite<=0){
+        alert("Informe um limite maior que zero.");
+        return;
+    }
+
+    if(!mes){
+        alert("Selecione o mês do orçamento.");
+        return;
+    }
+
+    const existente=orcamentos.find(item=>
+        item.categoria===categoria && item.id!==editandoId
+    );
+
+    if(existente){
+        alert("Já existe um orçamento para esta categoria neste mês. Edite o orçamento existente.");
+        return;
+    }
+
+    const botao=document.querySelector(".formulario button");
+    botao.disabled=true;
+    botao.textContent="SALVANDO...";
+
+    try{
+        const id=editandoId || idOrcamento(mes,categoria);
+
+        await colecaoOrcamentos().doc(id).set({
+            mes:mes,
+            categoria:categoria,
+            limite:limite,
+            observacao:observacao,
+            atualizadoPor:auth.currentUser.uid,
+            atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+
+        limparFormulario();
+        await carregarMes();
+
+        alert("Orçamento salvo com sucesso!");
+
+    }catch(erro){
+        console.error(erro);
+        mostrarMensagem("Erro ao salvar orçamento. Confira as regras de acesso do Firestore.");
+    }finally{
+        botao.disabled=false;
+        botao.textContent="💾 SALVAR";
+    }
+}
+
+function editarOrcamento(id){
+    const item=orcamentos.find(x=>x.id===id);
+    if(!item)return;
+
+    document.getElementById("categoria").value=item.categoria;
+    document.getElementById("limite").value=item.limite;
+    document.getElementById("observacao").value=item.observacao||"";
+    document.getElementById("editandoId").value=item.id;
+
+    document.querySelector(".formulario button").textContent="💾 ATUALIZAR";
+
+    document.querySelector(".formulario").scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+    });
+}
+
+async function excluirOrcamento(id){
+    const item=orcamentos.find(x=>x.id===id);
+    if(!item)return;
+
+    if(!confirm("Deseja excluir o orçamento de "+item.categoria+" deste mês?"))return;
+
+    try{
+        await colecaoOrcamentos().doc(id).delete();
+        await carregarMes();
+        limparFormulario();
+        alert("Orçamento excluído.");
+
+    }catch(erro){
+        console.error(erro);
+        mostrarMensagem("Não foi possível excluir o orçamento. Verifique as permissões do Firestore.");
+    }
+}
+
+function limparFormulario(){
+    document.getElementById("categoria").value="";
+    document.getElementById("limite").value="";
+    document.getElementById("observacao").value="";
+    document.getElementById("editandoId").value="";
+    document.querySelector(".formulario button").textContent="💾 SALVAR";
+}
+
+async function validarAcesso(user){
+    const usuarioDoc=await db.collection("usuarios").doc(user.uid).get();
+
+    if(!usuarioDoc.exists){
+        throw new Error("Usuário não encontrado.");
+    }
+
+    familiaId=usuarioDoc.data().familiaId;
+
+    if(!familiaId){
+        throw new Error("Usuário não vinculado a uma família.");
+    }
+
+    const familiaRef=db.collection("familias").doc(familiaId);
+
+    const [familiaDoc,membroDoc]=await Promise.all([
+        familiaRef.get(),
+        familiaRef.collection("membros").doc(user.uid).get()
+    ]);
+
+    if(!familiaDoc.exists || familiaDoc.data().status!=="ATIVA"){
+        throw new Error("Família não encontrada ou inativa.");
+    }
+
+    if(!membroDoc.exists || membroDoc.data().ativo!==true){
+        throw new Error("Você não possui acesso ativo a esta família.");
+    }
+
+    document.getElementById("nomeFamilia").textContent=
+        "Família: "+(familiaDoc.data().nome||"Minha Família");
+
+    document.getElementById("filtroMes").value=mesAtual();
+
+    document.getElementById("carregando").style.display="none";
+    document.getElementById("conteudo").style.display="block";
+
+    await carregarMes();
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+    try{
+        if(!firebase.apps.length){
+            firebase.initializeApp(window.CONFIG.FIREBASE);
+        }
+
+        auth=firebase.auth();
+        db=firebase.firestore();
+
+        auth.onAuthStateChanged(async function(user){
+            if(!user){
+                window.location.href="login.html";
+                return;
+            }
+
+            try{
+                await validarAcesso(user);
+            }catch(erro){
+                console.error(erro);
+                alert(erro.message||"Erro ao validar acesso.");
+                await auth.signOut();
+                window.location.href="login.html";
+            }
+        });
+
+    }catch(erro){
+        console.error(erro);
+        document.getElementById("carregando").style.display="none";
+        mostrarMensagem("Erro ao iniciar o Firebase. Confira os arquivos de configuração.");
+    }
+});
+</script>
+
+</body>
+</html>

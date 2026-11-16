@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controle Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+* {box-sizing:border-box}
+
+body {
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f2f4f3;
+  color:#222;
+}
+
+header {
+  background:#121111;
+  color:white;
+  padding:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+header h2 {margin:0;color:#65c466}
+
+button {
+  border:0;
+  border-radius:7px;
+  padding:11px 16px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.sair {background:#a83232;color:white}
+
+main {
+  max-width:1100px;
+  margin:auto;
+  padding:25px;
+}
+
+.boas-vindas {
+  background:white;
+  padding:22px;
+  border-radius:12px;
+  margin-bottom:20px;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+}
+
+.item {
+  background:white;
+  padding:22px;
+  border-radius:12px;
+  text-align:center;
+  border:1px solid #eee;
+}
+
+.item .icone {font-size:32px}
+
+.item h3 {color:#176b35}
+
+.item p {color:#777;font-size:13px}
+
+.rodape {
+  text-align:center;
+  color:#888;
+  padding:30px;
+}
+
+#conteudo {
+  display:none;
+}
+
+#carregando {
+  text-align:center;
+  padding:50px 20px;
+  color:#176b35;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div id="carregando">
+  Verificando seu acesso...
+</div>
+
+<div id="conteudo">
+
+<header>
+  <h2>🏡 Controle Familiar</h2>
+  <button class="sair" onclick="sair()">SAIR</button>
+</header>
+
+<main>
+
+  <div class="boas-vindas">
+    <h2 id="nomeUsuario">Carregando...</h2>
+    <p id="nomeFamilia">Buscando sua família...</p>
+    <p id="tipoUsuario"></p>
+  </div>
+
+  <div class="grid">
+
+    <div class="item" onclick="location.href='financeiro.html'" style="cursor:pointer">
+      <div class="icone">💰</div>
+      <h3>Financeiro</h3>
+      <p>Receitas e despesas</p>
+    </div>
+
+    <div class="item" onclick="location.href='orcamento.html'" style="cursor:pointer">
+      <div class="icone">🧾</div>
+      <h3>Orçamento</h3>
+      <p>Limites de gastos por categoria</p>
+    </div>
+
+    <div class="item" onclick="location.href='compras.html'" style="cursor:pointer">
+      <div class="icone">🛒</div>
+      <h3>Compras</h3>
+      <p>Lista de compras</p>
+    </div>
+
+    <div class="item" onclick="location.href='agenda.html'" style="cursor:pointer">
+      <div class="icone">📅</div>
+      <h3>Agenda</h3>
+      <p>Compromissos familiares</p>
+    </div>
+
+    <div class="item" onclick="location.href='tarefas.html'" style="cursor:pointer">
+      <div class="icone">📋</div>
+      <h3>Tarefas</h3>
+      <p>Organização da casa</p>
+    </div>
+
+    <div class="item" onclick="location.href='familia.html'" style="cursor:pointer">
+      <div class="icone">👨‍👩‍👧‍👦</div>
+      <h3>Família</h3>
+      <p>Membros e convites</p>
+    </div>
+
+    <div class="item" onclick="location.href='metas.html'"
+     style="cursor:pointer">
+  <div class="icone">🎯</div>
+  <h3>Metas</h3>
+  <p>Objetivos familiares</p>
+</div>
+
+    <div class="item" onclick="location.href='relatorios.html'" style="cursor:pointer">
+      <div class="icone">📊</div>
+      <h3>Relatórios</h3>
+      <p>Resumo familiar</p>
+    </div>
+
+  </div>
+
+  <div class="rodape">
+    Controle Familiar © 2026
+  </div>
+
+</main>
+
+</div>
+
+<script>
+
+let verificacaoConcluida = false;
+
+
+// ========================================
+// VERIFICAR AUTORIZAÇÃO
+// ========================================
+auth.onAuthStateChanged(async function(user) {
+
+  if (verificacaoConcluida) return;
+
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  try {
+
+    // 1. Buscar perfil
+    const perfil = await db.collection("usuarios")
+      .doc(user.uid).get();
+
+    if (!perfil.exists) {
+      throw new Error("Cadastro não encontrado.");
+    }
+
+    const dados = perfil.data();
+    const familiaId = dados.familiaId;
+
+    if (!familiaId) {
+      throw new Error("Usuário sem família vinculada.");
+    }
+
+
+    // 2. Buscar família
+    const familia = await db.collection("familias")
+      .doc(familiaId).get();
+
+    if (!familia.exists) {
+      throw new Error("Família não encontrada.");
+    }
+
+    const dadosFamilia = familia.data();
+
+    if (dadosFamilia.status !== "ATIVA") {
+      throw new Error("Família desativada.");
+    }
+
+
+    // 3. Buscar membro
+    const membro = await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .doc(user.uid).get();
+
+    if (!membro.exists) {
+      throw new Error("Membro não autorizado.");
+    }
+
+    const dadosMembro = membro.data();
+
+    if (dadosMembro.ativo !== true) {
+      throw new Error("Conta desativada.");
+    }
+
+
+    // 4. AUTORIZADO: liberar Dashboard
+    document.getElementById("nomeUsuario").textContent =
+      "Olá, " + (dados.nome || user.email) + "!";
+
+    document.getElementById("nomeFamilia").textContent =
+      "Família: " + (dadosFamilia.nome || "");
+
+    document.getElementById("tipoUsuario").textContent =
+      dadosMembro.role === "admin"
+      ? "Administrador da família"
+      : "Integrante da família";
+
+    verificacaoConcluida = true;
+
+    document.getElementById("carregando").style.display = "none";
+    document.getElementById("conteudo").style.display = "block";
+
+
+  } catch(erro) {
+
+    console.error("Acesso bloqueado:", erro);
+
+    try {
+      await auth.signOut();
+    } catch(e) {
+      console.error("Erro ao encerrar sessão:", e);
+    }
+
+    window.location.replace("login.html");
+
+  }
+
+});
+
+
+// ========================================
+// SAIR
+// ========================================
+async function sair() {
+
+  await auth.signOut();
+
+  window.location.replace("login.html");
+
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function membro(familiaId) {
+      return logado() &&
+        exists(
+          /databases/$(database)/documents/familias/$(familiaId)/membros/$(request.auth.uid)
+        ) &&
+        get(
+          /databases/$(database)/documents/familias/$(familiaId)/membros/$(request.auth.uid)
+        ).data.ativo == true;
+    }
+
+    function admin(familiaId) {
+      return membro(familiaId) &&
+        get(
+          /databases/$(database)/documents/familias/$(familiaId)/membros/$(request.auth.uid)
+        ).data.role == 'admin';
+    }
+
+    // PERFIL DO USUÁRIO
+    match /usuarios/{uid} {
+      allow create: if logado() && request.auth.uid == uid
+        && request.resource.data.familiaId is string;
+
+      allow read, update: if logado() && request.auth.uid == uid;
+
+      allow delete: if false;
+    }
+
+    // FAMÍLIAS
+    match /familias/{familiaId} {
+
+      allow create: if logado() &&
+        request.resource.data.ownerUid == request.auth.uid;
+
+      allow read: if membro(familiaId);
+
+      allow update, delete: if admin(familiaId);
+
+      // MEMBROS
+      match /membros/{uid} {
+
+        allow create: if logado() &&
+          uid == request.auth.uid &&
+          get(
+            /databases/$(database)/documents/familias/$(familiaId)
+          ).data.ownerUid == request.auth.uid &&
+          request.resource.data.role == 'admin' &&
+          request.resource.data.ativo == true;
+
+        allow read: if membro(familiaId) &&
+          (uid == request.auth.uid || admin(familiaId));
+
+        allow update, delete: if admin(familiaId);
+      }
+
+      // MÓDULOS DA FAMÍLIA
+      match /{modulo}/{documento=**} {
+
+        allow read, write: if membro(familiaId) &&
+          modulo in [
+            'financeiro',
+            'compras',
+            'agenda',
+            'tarefas',
+            'metas'
+          ];
+      }
+    }
+  }
+}

@@ -1,0 +1,582 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarefas da Família</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f4f3;color:#222}
+header{background:#121111;color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h2{margin:0;color:#65c466}
+button{border:0;border-radius:7px;padding:11px 15px;font-weight:bold;cursor:pointer}
+.voltar{background:#444;color:white}
+main{max-width:1000px;margin:auto;padding:20px}
+.familia,.formulario,.lista{background:white;padding:20px;border-radius:12px;margin-bottom:18px}
+.familia{border-left:5px solid #176b35}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:18px}
+.resumo div{background:white;padding:17px;border-radius:10px}
+.resumo small{color:#777}
+.resumo h2{margin:8px 0 0;color:#176b35}
+.campo{margin-bottom:13px}
+label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:7px;font-size:15px;background:white}
+textarea{resize:vertical;min-height:75px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.salvar{background:#176b35;color:white;width:100%;margin-top:5px}
+.cancelar{background:#777;color:white;width:100%;margin-top:8px}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filtros button{background:#eee;color:#333}
+.filtros button.ativo{background:#176b35;color:white}
+.tarefa{border:1px solid #eee;border-radius:10px;padding:15px;margin-bottom:10px}
+.tarefa.concluida{background:#f0f8f0;opacity:.8}
+.tarefa.concluida .titulo{text-decoration:line-through;color:#777}
+.topo-tarefa{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.titulo{font-weight:bold;font-size:16px;overflow-wrap:anywhere}
+.descricao{font-size:13px;color:#666;margin-top:7px;white-space:pre-wrap;overflow-wrap:anywhere}
+.detalhes{font-size:12px;color:#777;margin-top:8px;line-height:1.8}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:bold;margin:5px 4px 0 0}
+.alta{background:#f9dddd;color:#a83232}
+.media{background:#fff0c9;color:#8a6200}
+.baixa{background:#dceafa;color:#245b91}
+.pendente{background:#fff0c9;color:#8a6200}
+.andamento{background:#dceafa;color:#245b91}
+.finalizada{background:#d9f2df;color:#176b35}
+.acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.editar{background:#e5a323;color:#222}
+.concluir{background:#176b35;color:white}
+.excluir{background:#a83232;color:white}
+.vazio{text-align:center;color:#888;padding:30px}
+.rodape{text-align:center;color:#888;padding:20px}
+@media(max-width:600px){
+ main{padding:12px}
+ .form-grid{grid-template-columns:1fr}
+ .topo-tarefa{flex-direction:column}
+ .acoes{width:100%}
+ .acoes button{flex:1}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>📋 Tarefas da Família</h2>
+  <button class="voltar" onclick="location.href='index.html'">← Menu</button>
+</header>
+
+<main>
+
+  <div class="familia">
+    <strong id="nomeFamilia">Carregando família...</strong>
+    <div id="nomeUsuario" style="font-size:13px;color:#777;margin-top:5px"></div>
+  </div>
+
+  <div class="resumo">
+    <div>
+      <small>Total de tarefas</small>
+      <h2 id="totalTarefas">0</h2>
+    </div>
+    <div>
+      <small>Pendentes</small>
+      <h2 id="totalPendentes">0</h2>
+    </div>
+    <div>
+      <small>Em andamento</small>
+      <h2 id="totalAndamento">0</h2>
+    </div>
+    <div>
+      <small>Concluídas</small>
+      <h2 id="totalConcluidas">0</h2>
+    </div>
+  </div>
+
+  <section class="formulario">
+    <h3 id="tituloFormulario">➕ Nova tarefa</h3>
+
+    <form id="formTarefa">
+
+      <div class="campo">
+        <label>Nome da tarefa</label>
+        <input id="titulo" type="text" maxlength="100"
+          placeholder="Ex.: Limpar a cozinha" required>
+      </div>
+
+      <div class="campo">
+        <label>Descrição</label>
+        <textarea id="descricao" maxlength="1000"
+          placeholder="Detalhes da tarefa (opcional)"></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="campo">
+          <label>Responsável</label>
+          <input id="responsavel" type="text" maxlength="100"
+            placeholder="Nome do responsável">
+        </div>
+
+        <div class="campo">
+          <label>Prazo</label>
+          <input id="prazo" type="date">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="campo">
+          <label>Prioridade</label>
+          <select id="prioridade">
+            <option value="BAIXA">Baixa</option>
+            <option value="MEDIA" selected>Média</option>
+            <option value="ALTA">Alta</option>
+          </select>
+        </div>
+
+        <div class="campo" id="campoStatus" style="display:none">
+          <label>Status</label>
+          <select id="status">
+            <option value="PENDENTE">Pendente</option>
+            <option value="ANDAMENTO">Em andamento</option>
+            <option value="CONCLUIDA">Concluída</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="salvar" type="submit" id="btnSalvar">
+        ➕ Salvar tarefa
+      </button>
+
+      <button class="cancelar" type="button"
+        id="btnCancelar" onclick="cancelarEdicao()"
+        style="display:none">
+        Cancelar edição
+      </button>
+
+    </form>
+  </section>
+
+  <section class="lista">
+    <h3>📋 Lista de tarefas</h3>
+
+    <div class="filtros">
+      <button class="ativo" onclick="filtrar('TODAS',this)">Todas</button>
+      <button onclick="filtrar('PENDENTE',this)">Pendentes</button>
+      <button onclick="filtrar('ANDAMENTO',this)">Em andamento</button>
+      <button onclick="filtrar('CONCLUIDA',this)">Concluídas</button>
+    </div>
+
+    <div id="listaTarefas">
+      <div class="vazio">Carregando tarefas...</div>
+    </div>
+  </section>
+
+  <div class="rodape">Controle Familiar © 2026</div>
+
+</main>
+
+<script>
+let familiaId=null;
+let usuarioAtual=null;
+let tarefas=[];
+let filtroAtual="TODAS";
+let editandoId=null;
+let carregando=false;
+
+function colecaoTarefas(){
+  return db.collection("familias")
+    .doc(familiaId)
+    .collection("tarefas");
+}
+
+function escapar(valor){
+  return String(valor ?? "").replace(/[&<>"']/g,function(c){
+    return {
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[c];
+  });
+}
+
+function dataHoje(){
+  const agora=new Date();
+  const ano=agora.getFullYear();
+  const mes=String(agora.getMonth()+1).padStart(2,"0");
+  const dia=String(agora.getDate()).padStart(2,"0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function formatarData(data){
+  if(!data) return "Sem prazo";
+  const partes=data.split("-");
+  return partes.length===3
+    ? partes[2]+"/"+partes[1]+"/"+partes[0]
+    : data;
+}
+
+function textoStatus(status){
+  return {
+    PENDENTE:"Pendente",
+    ANDAMENTO:"Em andamento",
+    CONCLUIDA:"Concluída"
+  }[status] || "Pendente";
+}
+
+function classeStatus(status){
+  return {
+    PENDENTE:"pendente",
+    ANDAMENTO:"andamento",
+    CONCLUIDA:"finalizada"
+  }[status] || "pendente";
+}
+
+function classePrioridade(prioridade){
+  return {
+    ALTA:"alta",
+    MEDIA:"media",
+    BAIXA:"baixa"
+  }[prioridade] || "media";
+}
+
+auth.onAuthStateChanged(async function(user){
+
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  usuarioAtual=user;
+
+  try{
+
+    const perfil=await db.collection("usuarios")
+      .doc(user.uid).get();
+
+    if(!perfil.exists || !perfil.data().familiaId){
+      await auth.signOut();
+      location.href="login.html";
+      return;
+    }
+
+    const dados=perfil.data();
+    familiaId=dados.familiaId;
+
+    const familia=await db.collection("familias")
+      .doc(familiaId).get();
+
+    const membro=await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .doc(user.uid).get();
+
+    if(!familia.exists || !membro.exists ||
+       membro.data().ativo!==true ||
+       familia.data().status!=="ATIVA"){
+      await auth.signOut();
+      location.href="login.html";
+      return;
+    }
+
+    document.getElementById("nomeFamilia").textContent=
+      "Família: "+familia.data().nome;
+
+    document.getElementById("nomeUsuario").textContent=
+      "Olá, "+(dados.nome || user.displayName || "Usuário");
+
+    await carregarTarefas();
+
+  }catch(erro){
+    console.error("Erro ao validar acesso:",erro);
+    alert("Não foi possível carregar os dados da família.");
+  }
+
+});
+
+async function carregarTarefas(){
+
+  if(carregando) return;
+  carregando=true;
+
+  try{
+
+    const snapshot=await colecaoTarefas().get();
+
+    tarefas=[];
+
+    snapshot.forEach(doc=>{
+      tarefas.push({
+        id:doc.id,
+        ...doc.data()
+      });
+    });
+
+    tarefas.sort((a,b)=>{
+      const prazoA=a.prazo || "9999-12-31";
+      const prazoB=b.prazo || "9999-12-31";
+
+      if(prazoA!==prazoB) return prazoA.localeCompare(prazoB);
+
+      return String(a.titulo || "").localeCompare(
+        String(b.titulo || ""),"pt-BR"
+      );
+    });
+
+    renderizar();
+
+  }catch(erro){
+    console.error("Erro ao carregar tarefas:",erro);
+    document.getElementById("listaTarefas").innerHTML=
+      '<div class="vazio">Não foi possível carregar as tarefas. Verifique as permissões do Firestore.</div>';
+  }finally{
+    carregando=false;
+  }
+
+}
+
+document.getElementById("formTarefa").addEventListener("submit",async function(e){
+
+  e.preventDefault();
+
+  const titulo=document.getElementById("titulo").value.trim();
+  const descricao=document.getElementById("descricao").value.trim();
+  const responsavel=document.getElementById("responsavel").value.trim();
+  const prazo=document.getElementById("prazo").value;
+  const prioridade=document.getElementById("prioridade").value;
+  const status=document.getElementById("status").value;
+
+  if(!titulo){
+    alert("Informe o nome da tarefa.");
+    return;
+  }
+
+  const botao=document.getElementById("btnSalvar");
+  botao.disabled=true;
+  botao.textContent="Salvando...";
+
+  try{
+
+    const dados={
+      titulo:titulo,
+      descricao:descricao,
+      responsavel:responsavel,
+      prazo:prazo,
+      prioridade:prioridade,
+      status:editandoId ? status : "PENDENTE",
+      atualizadoPor:usuarioAtual.uid,
+      atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if(editandoId){
+
+      await colecaoTarefas().doc(editandoId).update(dados);
+
+    }else{
+
+      dados.criadoPor=usuarioAtual.uid;
+      dados.criadoPorNome=usuarioAtual.displayName ||
+        usuarioAtual.email || "Integrante";
+      dados.criadoEm=firebase.firestore.FieldValue.serverTimestamp();
+
+      await colecaoTarefas().add(dados);
+
+    }
+
+    cancelarEdicao();
+    await carregarTarefas();
+
+  }catch(erro){
+    console.error("Erro ao salvar tarefa:",erro);
+    alert("Não foi possível salvar a tarefa.");
+  }finally{
+    botao.disabled=false;
+    botao.textContent=editandoId
+      ? "Salvar alterações"
+      : "➕ Salvar tarefa";
+  }
+
+});
+
+function renderizar(){
+
+  document.getElementById("totalTarefas").textContent=
+    tarefas.length;
+
+  document.getElementById("totalPendentes").textContent=
+    tarefas.filter(t=>t.status==="PENDENTE").length;
+
+  document.getElementById("totalAndamento").textContent=
+    tarefas.filter(t=>t.status==="ANDAMENTO").length;
+
+  document.getElementById("totalConcluidas").textContent=
+    tarefas.filter(t=>t.status==="CONCLUIDA").length;
+
+  const filtradas=tarefas.filter(t=>{
+    return filtroAtual==="TODAS" || t.status===filtroAtual;
+  });
+
+  const lista=document.getElementById("listaTarefas");
+
+  if(!filtradas.length){
+    lista.innerHTML='<div class="vazio">Nenhuma tarefa encontrada.</div>';
+    return;
+  }
+
+  lista.innerHTML=filtradas.map(t=>`
+
+    <div class="tarefa ${t.status==="CONCLUIDA" ? "concluida" : ""}">
+
+      <div class="topo-tarefa">
+        <div class="titulo">${escapar(t.titulo)}</div>
+
+        <div>
+          <span class="badge ${classePrioridade(t.prioridade)}">
+            ${escapar(t.prioridade || "MEDIA")}
+          </span>
+          <span class="badge ${classeStatus(t.status)}">
+            ${textoStatus(t.status)}
+          </span>
+        </div>
+      </div>
+
+      ${t.descricao ? `
+        <div class="descricao">${escapar(t.descricao)}</div>
+      ` : ""}
+
+      <div class="detalhes">
+        ${t.responsavel ? "👤 Responsável: "+escapar(t.responsavel)+"<br>" : ""}
+        📅 Prazo: ${formatarData(t.prazo)}
+        ${t.criadoPorNome ? "<br>📝 Cadastrada por: "+escapar(t.criadoPorNome) : ""}
+      </div>
+
+      <div class="acoes">
+
+        <button class="editar"
+          onclick="editarTarefa('${t.id}')">
+          ✏️ Editar
+        </button>
+
+        ${t.status!=="CONCLUIDA" ? `
+          <button class="concluir"
+            onclick="alterarStatus('${t.id}','CONCLUIDA')">
+            ✓ Concluir
+          </button>
+        ` : `
+          <button class="editar"
+            onclick="alterarStatus('${t.id}','PENDENTE')">
+            Reabrir
+          </button>
+        `}
+
+        <button class="excluir"
+          onclick="excluirTarefa('${t.id}')">
+          Excluir
+        </button>
+
+      </div>
+
+    </div>
+
+  `).join("");
+
+}
+
+function filtrar(filtro,botao){
+
+  filtroAtual=filtro;
+
+  document.querySelectorAll(".filtros button").forEach(b=>{
+    b.classList.remove("ativo");
+  });
+
+  botao.classList.add("ativo");
+  renderizar();
+
+}
+
+function editarTarefa(id){
+
+  const t=tarefas.find(item=>item.id===id);
+  if(!t) return;
+
+  editandoId=id;
+
+  document.getElementById("titulo").value=t.titulo || "";
+  document.getElementById("descricao").value=t.descricao || "";
+  document.getElementById("responsavel").value=t.responsavel || "";
+  document.getElementById("prazo").value=t.prazo || "";
+  document.getElementById("prioridade").value=t.prioridade || "MEDIA";
+  document.getElementById("status").value=t.status || "PENDENTE";
+
+  document.getElementById("campoStatus").style.display="block";
+  document.getElementById("tituloFormulario").textContent="✏️ Editar tarefa";
+  document.getElementById("btnSalvar").textContent="Salvar alterações";
+  document.getElementById("btnCancelar").style.display="block";
+
+  window.scrollTo({top:0,behavior:"smooth"});
+
+}
+
+function cancelarEdicao(){
+
+  editandoId=null;
+
+  document.getElementById("formTarefa").reset();
+  document.getElementById("campoStatus").style.display="none";
+  document.getElementById("tituloFormulario").textContent="➕ Nova tarefa";
+  document.getElementById("btnSalvar").textContent="➕ Salvar tarefa";
+  document.getElementById("btnCancelar").style.display="none";
+
+}
+
+async function alterarStatus(id,status){
+
+  try{
+
+    await colecaoTarefas().doc(id).update({
+      status:status,
+      atualizadoPor:usuarioAtual.uid,
+      atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await carregarTarefas();
+
+  }catch(erro){
+    console.error(erro);
+    alert("Não foi possível atualizar a tarefa.");
+  }
+
+}
+
+async function excluirTarefa(id){
+
+  if(!confirm("Deseja realmente excluir esta tarefa?")) return;
+
+  try{
+
+    await colecaoTarefas().doc(id).delete();
+
+    if(editandoId===id) cancelarEdicao();
+
+    await carregarTarefas();
+
+  }catch(erro){
+    console.error(erro);
+    alert("Não foi possível excluir a tarefa.");
+  }
+
+}
+
+</script>
+
+</body>
+</html>

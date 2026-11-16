@@ -1,0 +1,1030 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minha Família - Controle Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+* {
+  box-sizing:border-box;
+}
+
+body {
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f3f5f3;
+  color:#222;
+}
+
+header {
+  background:#121111;
+  color:white;
+  padding:20px;
+}
+
+.topo {
+  max-width:1000px;
+  margin:auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+header h2 {
+  margin:0;
+  font-size:21px;
+}
+
+header p {
+  margin:6px 0 0;
+  color:#ccc;
+  font-size:13px;
+}
+
+.voltar {
+  background:#176b35;
+  color:white;
+  padding:11px 15px;
+  border-radius:8px;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:bold;
+}
+
+main {
+  max-width:1000px;
+  margin:25px auto;
+  padding:0 15px 30px;
+}
+
+.card {
+  background:white;
+  padding:22px;
+  border-radius:12px;
+  margin-bottom:20px;
+  box-shadow:0 2px 8px #0000000d;
+}
+
+h3 {
+  margin-top:0;
+  color:#185b32;
+}
+
+p {
+  line-height:1.5;
+}
+
+input {
+  width:100%;
+  padding:14px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-size:15px;
+  margin:8px 0 12px;
+}
+
+button {
+  border:0;
+  border-radius:8px;
+  padding:12px 16px;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:14px;
+}
+
+button:disabled {
+  opacity:.6;
+  cursor:wait;
+}
+
+.btn-verde {
+  background:#176b35;
+  color:white;
+  width:100%;
+}
+
+.btn-copiar {
+  background:#176b35;
+  color:white;
+}
+
+.btn-cancelar {
+  background:#fdeaea;
+  color:#b3261e;
+}
+
+.info {
+  background:#edf6ef;
+  padding:14px;
+  border-radius:8px;
+  color:#315d3c;
+  font-size:13px;
+  line-height:1.5;
+  margin-top:12px;
+}
+
+.convite-gerado {
+  display:none;
+  margin-top:18px;
+  background:#f1f7f2;
+  border:1px solid #c9e3ce;
+  border-radius:10px;
+  padding:16px;
+}
+
+.codigo {
+  background:white;
+  border:1px dashed #176b35;
+  padding:14px;
+  border-radius:8px;
+  text-align:center;
+  font-size:16px;
+  font-weight:bold;
+  overflow-wrap:anywhere;
+  margin:12px 0;
+  color:#176b35;
+}
+
+.lista {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.item {
+  border:1px solid #eee;
+  border-radius:9px;
+  padding:15px;
+}
+
+.item-topo {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.email {
+  font-weight:bold;
+  overflow-wrap:anywhere;
+}
+
+.status {
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:bold;
+  background:#fff3d9;
+  color:#8a5b00;
+}
+
+.status.aceito {
+  background:#e4f4e8;
+  color:#176b35;
+}
+
+.status.inativo {
+  background:#fdeaea;
+  color:#b3261e;
+}
+
+.detalhe {
+  color:#777;
+  font-size:12px;
+  margin:10px 0;
+  overflow-wrap:anywhere;
+}
+
+.acoes {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.vazio {
+  text-align:center;
+  padding:25px;
+  color:#888;
+}
+
+#mensagem {
+  margin-top:12px;
+  font-size:14px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+
+.sucesso {
+  color:#176b35;
+}
+
+.erro {
+  color:#c62828;
+}
+
+.oculto {
+  display:none !important;
+}
+
+.resumo {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.resumo-item {
+  background:#f5f8f5;
+  padding:15px;
+  border-radius:9px;
+  text-align:center;
+}
+
+.resumo-item strong {
+  display:block;
+  font-size:25px;
+  color:#176b35;
+}
+
+.resumo-item span {
+  color:#777;
+  font-size:12px;
+}
+
+@media(max-width:600px) {
+
+  .topo {
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .card {
+    padding:17px;
+  }
+
+  .resumo {
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="topo">
+
+    <div>
+      <h2>👨‍👩‍👧‍👦 Minha Família</h2>
+      <p id="nomeFamilia">Carregando família...</p>
+    </div>
+
+    <a href="dashboard.html" class="voltar">← Menu</a>
+
+  </div>
+</header>
+
+<main>
+
+  <section class="card" id="carregando">
+    <p>Verificando acesso...</p>
+  </section>
+
+  <div id="conteudo" class="oculto">
+
+    <div class="resumo">
+
+      <div class="resumo-item">
+        <strong id="totalMembros">0</strong>
+        <span>Membros</span>
+      </div>
+
+      <div class="resumo-item">
+        <strong id="totalAtivos">0</strong>
+        <span>Ativos</span>
+      </div>
+
+      <div class="resumo-item">
+        <strong id="totalConvites">0</strong>
+        <span>Convites pendentes</span>
+      </div>
+
+    </div>
+
+    <!-- GERAR CONVITE -->
+    <section class="card" id="painel">
+
+      <h3>➕ Gerar convite</h3>
+
+      <p>
+        Informe o e-mail da pessoa que deseja adicionar à família.
+      </p>
+
+      <input
+        type="email"
+        id="emailConvite"
+        placeholder="E-mail da pessoa"
+        maxlength="150"
+      >
+
+      <button
+        class="btn-verde"
+        id="btnGerar"
+        onclick="gerarConvite()">
+        GERAR CÓDIGO DE CONVITE
+      </button>
+
+      <div id="mensagem"></div>
+
+      <div class="convite-gerado" id="conviteGerado">
+
+        <strong>Convite criado com sucesso!</strong>
+
+        <p>Envie este código para a pessoa convidada:</p>
+
+        <div class="codigo" id="codigoGerado"></div>
+
+        <button
+          class="btn-copiar"
+          onclick="copiarCodigo()">
+          📋 COPIAR CÓDIGO
+        </button>
+
+      </div>
+
+      <div class="info">
+        O convite só poderá ser utilizado pelo e-mail informado.
+        A pessoa deverá escolher "Entrar na família" na tela de cadastro.
+      </div>
+
+    </section>
+
+    <!-- MEMBROS -->
+    <section class="card" id="membrosPainel">
+
+      <h3>👨‍👩‍👧‍👦 Membros da família</h3>
+
+      <p>Gerencie quem tem acesso à sua família.</p>
+
+      <div id="listaMembros" class="lista">
+        <div class="vazio">Carregando membros...</div>
+      </div>
+
+    </section>
+
+    <!-- CONVITES -->
+    <section class="card" id="listaPainel">
+
+      <h3>📨 Convites da família</h3>
+
+      <div id="listaConvites" class="lista">
+        <div class="vazio">Carregando convites...</div>
+      </div>
+
+    </section>
+
+  </div>
+
+</main>
+
+<script>
+
+let familiaId = "";
+let nomeUsuario = "";
+let emailUsuario = "";
+let codigoAtual = "";
+
+// =====================================
+// MENSAGENS
+// =====================================
+
+function mostrarMensagem(texto, tipo) {
+
+  const elemento = document.getElementById("mensagem");
+
+  elemento.className = tipo;
+  elemento.textContent = texto;
+
+}
+
+// =====================================
+// GERAR CÓDIGO ALEATÓRIO
+// =====================================
+
+function gerarCodigoAleatorio() {
+
+  const caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+  const valores = new Uint8Array(10);
+
+  crypto.getRandomValues(valores);
+
+  return Array.from(valores)
+    .map(valor => caracteres[valor % caracteres.length])
+    .join("");
+
+}
+
+// =====================================
+// VERIFICAR USUÁRIO E FAMÍLIA
+// =====================================
+
+auth.onAuthStateChanged(async function(usuario) {
+
+  if (!usuario) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  try {
+
+    const perfilDoc = await db.collection("usuarios")
+      .doc(usuario.uid)
+      .get();
+
+    if (!perfilDoc.exists) {
+      throw new Error("Perfil do usuário não encontrado.");
+    }
+
+    const perfil = perfilDoc.data();
+
+    familiaId = perfil.familiaId;
+
+    nomeUsuario = perfil.nome || usuario.displayName || "Administrador";
+
+    emailUsuario = usuario.email || "";
+
+    if (!familiaId) {
+      throw new Error("Usuário sem família vinculada.");
+    }
+
+    // Buscar família
+    const familiaDoc = await db.collection("familias")
+      .doc(familiaId)
+      .get();
+
+    if (!familiaDoc.exists) {
+      throw new Error("Família não encontrada.");
+    }
+
+    const familia = familiaDoc.data();
+
+    if (familia.status !== "ATIVA") {
+      throw new Error("Esta família está inativa.");
+    }
+
+    // Buscar membro atual
+    const membroDoc = await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .doc(usuario.uid)
+      .get();
+
+    if (!membroDoc.exists) {
+      throw new Error("Seu acesso à família não foi encontrado.");
+    }
+
+    const membro = membroDoc.data();
+
+    if (membro.ativo !== true) {
+      throw new Error("Seu acesso à família está desativado.");
+    }
+
+    // Somente administrador gerencia esta página
+    if (membro.role !== "admin") {
+      throw new Error("Somente o administrador pode gerenciar a família.");
+    }
+
+    document.getElementById("nomeFamilia").textContent =
+      familia.nome || "Minha família";
+
+    document.getElementById("carregando").classList.add("oculto");
+
+    document.getElementById("conteudo").classList.remove("oculto");
+
+    await carregarMembros();
+
+    await carregarConvites();
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    document.getElementById("carregando").innerHTML =
+      "<p style='color:#c62828'>" +
+      (erro.message || "Não foi possível verificar seu acesso.") +
+      "</p>";
+
+  }
+
+});
+
+// =====================================
+// GERAR CONVITE
+// =====================================
+
+async function gerarConvite() {
+
+  const email = document.getElementById("emailConvite")
+    .value.trim().toLowerCase();
+
+  const botao = document.getElementById("btnGerar");
+
+  if (!email || !email.includes("@")) {
+    mostrarMensagem("Informe um e-mail válido.", "erro");
+    return;
+  }
+
+  if (email === emailUsuario.toLowerCase()) {
+    mostrarMensagem("Você já é membro desta família.", "erro");
+    return;
+  }
+
+  botao.disabled = true;
+  botao.textContent = "GERANDO CONVITE...";
+
+  document.getElementById("conviteGerado").style.display = "none";
+
+  try {
+
+    const familiaRef = db.collection("familias").doc(familiaId);
+
+    const familiaDoc = await familiaRef.get();
+
+    if (!familiaDoc.exists || familiaDoc.data().status !== "ATIVA") {
+      throw new Error("A família não está ativa.");
+    }
+
+    // Verificar membros existentes
+    const membros = await familiaRef
+      .collection("membros")
+      .where("email", "==", email)
+      .get();
+
+    if (!membros.empty) {
+      throw new Error("Este e-mail já pertence a um membro da família.");
+    }
+
+    // Verificar convites pendentes
+    const convites = await familiaRef
+      .collection("convites")
+      .where("email", "==", email)
+      .where("status", "==", "PENDENTE")
+      .get();
+
+    if (!convites.empty) {
+      throw new Error("Já existe um convite pendente para este e-mail.");
+    }
+
+    // Gerar código exclusivo
+    let codigo = "";
+    let conviteRef = null;
+    let codigoDisponivel = false;
+
+    for (let tentativa = 0; tentativa < 5; tentativa++) {
+
+      codigo = gerarCodigoAleatorio();
+
+      conviteRef = familiaRef
+        .collection("convites")
+        .doc(codigo);
+
+      const existente = await conviteRef.get();
+
+      if (!existente.exists) {
+        codigoDisponivel = true;
+        break;
+      }
+
+    }
+
+    if (!codigoDisponivel) {
+      throw new Error("Não foi possível gerar um código. Tente novamente.");
+    }
+
+    await conviteRef.set({
+
+      email: email,
+
+      status: "PENDENTE",
+
+      criadoPorUid: auth.currentUser.uid,
+
+      criadoPorNome: nomeUsuario,
+
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+
+    });
+
+    codigoAtual = familiaId + "~" + codigo;
+
+    document.getElementById("codigoGerado").textContent = codigoAtual;
+
+    document.getElementById("conviteGerado").style.display = "block";
+
+    document.getElementById("emailConvite").value = "";
+
+    mostrarMensagem("Convite registrado com sucesso!", "sucesso");
+
+    await carregarConvites();
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    mostrarMensagem(
+      erro.message || "Não foi possível gerar o convite.",
+      "erro"
+    );
+
+  } finally {
+
+    botao.disabled = false;
+    botao.textContent = "GERAR CÓDIGO DE CONVITE";
+
+  }
+
+}
+
+// =====================================
+// COPIAR CÓDIGO
+// =====================================
+
+async function copiarCodigo() {
+
+  if (!codigoAtual) return;
+
+  try {
+
+    await navigator.clipboard.writeText(codigoAtual);
+
+    mostrarMensagem(
+      "Código copiado! Agora você pode enviar pelo WhatsApp.",
+      "sucesso"
+    );
+
+  } catch (erro) {
+
+    mostrarMensagem(
+      "Não foi possível copiar automaticamente. Selecione e copie o código.",
+      "erro"
+    );
+
+  }
+
+}
+
+// =====================================
+// CARREGAR CONVITES
+// =====================================
+
+async function carregarConvites() {
+
+  const lista = document.getElementById("listaConvites");
+
+  lista.innerHTML = "";
+
+  try {
+
+    const resultado = await db.collection("familias")
+      .doc(familiaId)
+      .collection("convites")
+      .orderBy("criadoEm", "desc")
+      .get();
+
+    let pendentes = 0;
+
+    if (resultado.empty) {
+
+      lista.innerHTML =
+        "<div class='vazio'>Nenhum convite criado ainda.</div>";
+
+      document.getElementById("totalConvites").textContent = "0";
+
+      return;
+
+    }
+
+    resultado.forEach(function(doc) {
+
+      const convite = doc.data();
+
+      const aceito = convite.status === "ACEITO";
+
+      if (convite.status === "PENDENTE") {
+        pendentes++;
+      }
+
+      const item = document.createElement("div");
+      item.className = "item";
+
+      const topo = document.createElement("div");
+      topo.className = "item-topo";
+
+      const email = document.createElement("div");
+      email.className = "email";
+      email.textContent = convite.email || "";
+
+      const status = document.createElement("span");
+      status.className = "status" + (aceito ? " aceito" : "");
+      status.textContent = convite.status || "PENDENTE";
+
+      topo.appendChild(email);
+      topo.appendChild(status);
+
+      const detalhe = document.createElement("div");
+      detalhe.className = "detalhe";
+
+      let dataTexto = "";
+
+      if (convite.criadoEm && convite.criadoEm.toDate) {
+        dataTexto = convite.criadoEm.toDate().toLocaleString("pt-BR");
+      }
+
+      detalhe.textContent =
+        "Criado em: " + (dataTexto || "Data não disponível");
+
+      item.appendChild(topo);
+      item.appendChild(detalhe);
+
+      if (aceito) {
+
+        const aceitoPor = document.createElement("div");
+        aceitoPor.className = "detalhe";
+
+        aceitoPor.textContent =
+          "Utilizado pelo UID: " + (convite.aceitoPorUid || "Não informado");
+
+        item.appendChild(aceitoPor);
+
+      } else if (convite.status === "PENDENTE") {
+
+        const acoes = document.createElement("div");
+        acoes.className = "acoes";
+
+        const cancelar = document.createElement("button");
+        cancelar.className = "btn-cancelar";
+        cancelar.textContent = "Cancelar convite";
+
+        cancelar.onclick = function() {
+          cancelarConvite(doc.id);
+        };
+
+        acoes.appendChild(cancelar);
+        item.appendChild(acoes);
+
+      }
+
+      lista.appendChild(item);
+
+    });
+
+    document.getElementById("totalConvites").textContent = pendentes;
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    lista.innerHTML =
+      "<div class='vazio'>Não foi possível carregar os convites.</div>";
+
+  }
+
+}
+
+// =====================================
+// CANCELAR CONVITE
+// =====================================
+
+async function cancelarConvite(codigo) {
+
+  if (!confirm("Deseja cancelar este convite?")) return;
+
+  try {
+
+    await db.collection("familias")
+      .doc(familiaId)
+      .collection("convites")
+      .doc(codigo)
+      .delete();
+
+    mostrarMensagem("Convite cancelado.", "sucesso");
+
+    await carregarConvites();
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    mostrarMensagem(
+      "Não foi possível cancelar o convite.",
+      "erro"
+    );
+
+  }
+
+}
+
+// =====================================
+// CARREGAR MEMBROS
+// =====================================
+
+async function carregarMembros() {
+
+  const lista = document.getElementById("listaMembros");
+
+  lista.innerHTML = "<div class='vazio'>Carregando membros...</div>";
+
+  try {
+
+    const resultado = await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .get();
+
+    lista.innerHTML = "";
+
+    let total = 0;
+    let ativos = 0;
+
+    if (resultado.empty) {
+
+      lista.innerHTML =
+        "<div class='vazio'>Nenhum membro encontrado.</div>";
+
+      return;
+
+    }
+
+    resultado.forEach(function(doc) {
+
+      const membro = doc.data();
+
+      const uid = doc.id;
+
+      const ativo = membro.ativo === true;
+
+      const souEu = uid === auth.currentUser.uid;
+
+      total++;
+
+      if (ativo) ativos++;
+
+      const item = document.createElement("div");
+      item.className = "item";
+
+      const topo = document.createElement("div");
+      topo.className = "item-topo";
+
+      const identificacao = document.createElement("div");
+
+      const nome = document.createElement("div");
+      nome.className = "email";
+      nome.textContent = membro.nome || "Sem nome";
+
+      const email = document.createElement("div");
+      email.className = "detalhe";
+      email.textContent = membro.email || "E-mail não informado";
+
+      identificacao.appendChild(nome);
+      identificacao.appendChild(email);
+
+      const status = document.createElement("span");
+
+      status.className = "status " + (ativo ? "aceito" : "inativo");
+
+      status.textContent = ativo ? "ATIVO" : "DESATIVADO";
+
+      topo.appendChild(identificacao);
+      topo.appendChild(status);
+
+      const funcao = document.createElement("div");
+
+      funcao.className = "detalhe";
+
+      funcao.textContent =
+        "Função: " +
+        (membro.role === "admin" ? "Administrador" : "Membro") +
+        (souEu ? " • Você" : "");
+
+      item.appendChild(topo);
+      item.appendChild(funcao);
+
+      if (!souEu) {
+
+        const acoes = document.createElement("div");
+
+        acoes.className = "acoes";
+
+        const botao = document.createElement("button");
+
+        if (ativo) {
+
+          botao.className = "btn-cancelar";
+
+          botao.textContent = "Desativar acesso";
+
+        } else {
+
+          botao.className = "btn-copiar";
+
+          botao.textContent = "Ativar acesso";
+
+        }
+
+        botao.onclick = function() {
+
+          alterarAcessoMembro(uid, !ativo, botao);
+
+        };
+
+        acoes.appendChild(botao);
+
+        item.appendChild(acoes);
+
+      }
+
+      lista.appendChild(item);
+
+    });
+
+    document.getElementById("totalMembros").textContent = total;
+
+    document.getElementById("totalAtivos").textContent = ativos;
+
+  } catch (erro) {
+
+    console.error("Erro ao carregar membros:", erro);
+
+    lista.innerHTML =
+      "<div class='vazio'>Não foi possível carregar os membros.</div>";
+
+  }
+
+}
+
+// =====================================
+// ATIVAR OU DESATIVAR MEMBRO
+// =====================================
+
+async function alterarAcessoMembro(uid, novoStatus, botao) {
+
+  const acao = novoStatus ? "ativar" : "desativar";
+
+  if (!confirm("Deseja realmente " + acao + " o acesso deste membro?")) {
+    return;
+  }
+
+  botao.disabled = true;
+
+  try {
+
+    await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .doc(uid)
+      .update({
+        ativo: novoStatus
+      });
+
+    mostrarMensagem(
+      novoStatus
+        ? "Membro ativado com sucesso!"
+        : "Membro desativado com sucesso!",
+      "sucesso"
+    );
+
+    await carregarMembros();
+
+  } catch (erro) {
+
+    console.error("Erro ao alterar membro:", erro);
+
+    mostrarMensagem(
+      "Não foi possível alterar o acesso: " + erro.message,
+      "erro"
+    );
+
+    botao.disabled = false;
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>

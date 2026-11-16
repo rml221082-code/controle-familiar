@@ -1,0 +1,414 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login - Controle Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+* {box-sizing:border-box}
+
+body {
+  margin:0;
+  background:#121111;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  font-family:Arial;
+}
+
+.card {
+  background:white;
+  padding:30px;
+  width:100%;
+  max-width:400px;
+  border-radius:15px;
+}
+
+h1 {
+  color:#176b35;
+  text-align:center;
+}
+
+input {
+  width:100%;
+  padding:14px;
+  margin:9px 0;
+  border:1px solid #ddd;
+  border-radius:8px;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  margin-top:12px;
+  background:#176b35;
+  color:white;
+  border:0;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:disabled {
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+a {color:#176b35}
+
+#mensagem {
+  text-align:center;
+  margin-top:15px;
+  line-height:1.5;
+  font-size:14px;
+}
+
+.aviso {
+  background:#fff3f3;
+  color:#b42318;
+  border:1px solid #f3c5c5;
+  padding:12px;
+  border-radius:8px;
+  margin-top:15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>🏡 Controle Familiar</h1>
+
+<p style="text-align:center;color:#666">
+Entre na sua conta
+</p>
+
+<form id="formLogin">
+
+<input id="email" type="email"
+placeholder="E-mail" required>
+
+<input id="senha" type="password"
+placeholder="Senha" required>
+
+<button id="btnLogin" type="submit">ENTRAR</button>
+
+</form>
+
+<p style="text-align:center">
+<a href="#" id="recuperar">Esqueci minha senha</a>
+</p>
+
+<p style="text-align:center">
+Não possui conta?
+<a href="cadastro.html">Criar minha família</a>
+</p>
+
+<div id="mensagem"></div>
+
+</div>
+
+<script>
+const mensagem = document.getElementById("mensagem");
+const botao = document.getElementById("btnLogin");
+
+let loginEmAndamento = false;
+let redirecionando = false;
+
+
+// ========================================
+// MOSTRAR MENSAGEM
+// ========================================
+function mostrarMensagem(texto, tipo = "erro") {
+
+  mensagem.className = tipo === "erro" ? "aviso" : "";
+
+  mensagem.style.color =
+    tipo === "sucesso" ? "#176b35" : "#b42318";
+
+  mensagem.textContent = texto;
+}
+
+
+// ========================================
+// VERIFICAR SE O USUÁRIO ESTÁ AUTORIZADO
+// ========================================
+async function verificarAcesso(user) {
+
+  // 1. Buscar perfil do usuário
+  const perfilDoc = await db.collection("usuarios")
+    .doc(user.uid).get();
+
+  if (!perfilDoc.exists) {
+    return {
+      autorizado: false,
+      mensagem: "Cadastro não encontrado. Entre em contato com o administrador."
+    };
+  }
+
+  const perfil = perfilDoc.data();
+  const familiaId = perfil.familiaId;
+
+  if (!familiaId) {
+    return {
+      autorizado: false,
+      mensagem: "Sua conta não está vinculada a uma família. Entre em contato com o administrador."
+    };
+  }
+
+
+  // 2. Verificar se a família está ativa
+  const familiaDoc = await db.collection("familias")
+    .doc(familiaId).get();
+
+  if (!familiaDoc.exists) {
+    return {
+      autorizado: false,
+      mensagem: "Família não encontrada. Entre em contato com o administrador."
+    };
+  }
+
+  const familia = familiaDoc.data();
+
+  if (familia.status !== "ATIVA") {
+    return {
+      autorizado: false,
+      mensagem: "Esta família está desativada. Entre em contato com o administrador."
+    };
+  }
+
+
+  // 3. Verificar se o membro está ativo
+  const membroDoc = await db.collection("familias")
+    .doc(familiaId)
+    .collection("membros")
+    .doc(user.uid)
+    .get();
+
+  if (!membroDoc.exists) {
+    return {
+      autorizado: false,
+      mensagem: "Seu acesso não está autorizado. Entre em contato com o administrador da família."
+    };
+  }
+
+  const membro = membroDoc.data();
+
+  if (membro.ativo !== true) {
+    return {
+      autorizado: false,
+      mensagem: "Seu acesso está desativado no momento. Entre em contato com o administrador da família para solicitar a liberação."
+    };
+  }
+
+
+  // Tudo certo
+  return {
+    autorizado: true
+  };
+}
+
+
+// ========================================
+// VERIFICAR SESSÃO JÁ EXISTENTE
+// ========================================
+auth.onAuthStateChanged(async function(user) {
+
+  if (!user) return;
+
+  // Evita duas verificações simultâneas durante o login
+  if (loginEmAndamento || redirecionando) return;
+
+  botao.disabled = true;
+  botao.textContent = "VERIFICANDO...";
+
+  try {
+
+    const resultado = await verificarAcesso(user);
+
+    if (resultado.autorizado) {
+
+      redirecionando = true;
+      window.location.replace("dashboard.html");
+      return;
+
+    }
+
+    await auth.signOut();
+
+    mostrarMensagem(resultado.mensagem);
+
+  } catch (erro) {
+
+    console.error("Erro ao verificar acesso:", erro);
+
+    await auth.signOut();
+
+    mostrarMensagem(
+      "Não foi possível verificar seu acesso. Tente novamente."
+    );
+
+  } finally {
+
+    botao.disabled = false;
+    botao.textContent = "ENTRAR";
+
+  }
+
+});
+
+
+// ========================================
+// LOGIN
+// ========================================
+document.getElementById("formLogin")
+.addEventListener("submit", async function(e) {
+
+  e.preventDefault();
+
+  if (loginEmAndamento) return;
+
+  loginEmAndamento = true;
+
+  mensagem.textContent = "";
+  mensagem.className = "";
+
+  const email = document.getElementById("email")
+    .value.trim();
+
+  const senha = document.getElementById("senha")
+    .value;
+
+  botao.disabled = true;
+  botao.textContent = "VERIFICANDO ACESSO...";
+
+  try {
+
+    // 1. Autenticar
+    const credencial = await auth.signInWithEmailAndPassword(
+      email,
+      senha
+    );
+
+    const user = credencial.user;
+
+    // 2. Conferir família e membro
+    const resultado = await verificarAcesso(user);
+
+    if (!resultado.autorizado) {
+
+      // Impedir entrada de usuário desativado
+      await auth.signOut();
+
+      mostrarMensagem(resultado.mensagem);
+
+      return;
+    }
+
+    // 3. Liberar Dashboard somente se estiver ativo
+    redirecionando = true;
+
+    window.location.replace("dashboard.html");
+
+  } catch(erro) {
+
+    console.error("Erro no login:", erro);
+
+    // Garantir que não permaneça uma sessão inválida
+    if (auth.currentUser) {
+      try {
+        await auth.signOut();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    let texto = "Não foi possível realizar o login.";
+
+    if (
+      erro.code === "auth/invalid-credential" ||
+      erro.code === "auth/wrong-password" ||
+      erro.code === "auth/user-not-found"
+    ) {
+      texto = "E-mail ou senha incorretos.";
+    }
+
+    else if (erro.code === "auth/too-many-requests") {
+      texto = "Muitas tentativas. Aguarde um pouco e tente novamente.";
+    }
+
+    else if (erro.message) {
+      texto = erro.message;
+    }
+
+    mostrarMensagem(texto);
+
+  } finally {
+
+    loginEmAndamento = false;
+
+    if (!redirecionando) {
+      botao.disabled = false;
+      botao.textContent = "ENTRAR";
+    }
+
+  }
+
+});
+
+
+// ========================================
+// RECUPERAR SENHA
+// ========================================
+document.getElementById("recuperar")
+.addEventListener("click", async function(e) {
+
+  e.preventDefault();
+
+  const email = document.getElementById("email")
+    .value.trim();
+
+  if (!email) {
+    mostrarMensagem("Informe seu e-mail primeiro.");
+    return;
+  }
+
+  try {
+
+    await auth.sendPasswordResetEmail(email);
+
+    mensagem.className = "";
+
+    mostrarMensagem(
+      "Se a conta existir, você receberá instruções de recuperação.",
+      "sucesso"
+    );
+
+  } catch(erro) {
+
+    console.error(erro);
+
+    mostrarMensagem(
+      "Não foi possível solicitar a recuperação."
+    );
+
+  }
+
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,591 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Criar conta - Controle Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#121111;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.card {
+  background:white;
+  width:100%;
+  max-width:440px;
+  padding:28px;
+  border-radius:15px;
+}
+
+h1 {
+  text-align:center;
+  color:#185b32;
+  margin-top:0;
+}
+
+p {
+  color:#666;
+  text-align:center;
+  line-height:1.5;
+}
+
+.opcoes {
+  display:flex;
+  gap:10px;
+  margin:22px 0;
+}
+
+.opcao {
+  flex:1;
+  padding:13px 8px;
+  border:2px solid #ddd;
+  border-radius:9px;
+  background:white;
+  color:#333;
+  font-size:13px;
+  font-weight:bold;
+  cursor:pointer;
+  margin:0;
+}
+
+.opcao.ativa {
+  border-color:#176b35;
+  background:#eaf5ed;
+  color:#176b35;
+}
+
+input {
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-size:15px;
+}
+
+input:focus {
+  outline:none;
+  border-color:#176b35;
+}
+
+.campo-titulo {
+  font-size:13px;
+  font-weight:bold;
+  color:#444;
+  margin-top:12px;
+}
+
+button.principal {
+  width:100%;
+  padding:15px;
+  border:0;
+  border-radius:8px;
+  background:#176b35;
+  color:white;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+  margin-top:15px;
+}
+
+button:disabled {
+  opacity:.6;
+  cursor:wait;
+}
+
+a { color:#176b35; }
+
+#mensagem {
+  margin-top:15px;
+  text-align:center;
+  font-size:14px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+
+.sucesso { color:#176b35; }
+.erro { color:#c62828; }
+.aviso { color:#b26a00; }
+
+.oculto { display:none; }
+
+.info {
+  background:#f1f7f2;
+  border-radius:8px;
+  padding:12px;
+  font-size:13px;
+  color:#386345;
+  line-height:1.5;
+  margin-top:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>🏡 Controle Familiar</h1>
+
+  <p>Crie sua conta ou entre em uma família existente.</p>
+
+  <div class="opcoes">
+
+    <button
+      type="button"
+      class="opcao ativa"
+      id="opcaoCriar"
+      onclick="selecionarModo('criar')">
+      🏠 Criar família
+    </button>
+
+    <button
+      type="button"
+      class="opcao"
+      id="opcaoEntrar"
+      onclick="selecionarModo('entrar')">
+      👨‍👩‍👧 Entrar na família
+    </button>
+
+  </div>
+
+  <form id="formCadastro">
+
+    <div class="campo-titulo">Nome completo</div>
+
+    <input
+      id="nome"
+      type="text"
+      placeholder="Seu nome completo"
+      autocomplete="name"
+      maxlength="100"
+      required
+    >
+
+    <div id="campoFamilia">
+
+      <div class="campo-titulo">Nome da família</div>
+
+      <input
+        id="familia"
+        type="text"
+        placeholder="Ex.: Família Silva"
+        maxlength="100"
+      >
+
+    </div>
+
+    <div id="campoConvite" class="oculto">
+
+      <div class="campo-titulo">Código do convite</div>
+
+      <input
+        id="codigoConvite"
+        type="text"
+        placeholder="Cole o código recebido"
+        autocomplete="off"
+      >
+
+      <div class="info">
+        Informe o código fornecido pelo administrador da família.
+        O convite precisa ter sido criado para o mesmo e-mail usado no cadastro.
+      </div>
+
+    </div>
+
+    <div class="campo-titulo">E-mail</div>
+
+    <input
+      id="email"
+      type="email"
+      placeholder="Seu e-mail"
+      autocomplete="email"
+      required
+    >
+
+    <div class="campo-titulo">Senha</div>
+
+    <input
+      id="senha"
+      type="password"
+      placeholder="Crie uma senha (mínimo 6 caracteres)"
+      minlength="6"
+      autocomplete="new-password"
+      required
+    >
+
+    <button
+      id="btnCadastro"
+      class="principal"
+      type="submit">
+      CRIAR MINHA FAMÍLIA
+    </button>
+
+  </form>
+
+  <div id="mensagem"></div>
+
+  <p>
+    Já possui conta?
+    <a href="login.html">Entrar</a>
+  </p>
+
+</div>
+
+<script>
+
+const form = document.getElementById("formCadastro");
+const mensagem = document.getElementById("mensagem");
+const botao = document.getElementById("btnCadastro");
+
+let modo = "criar";
+
+// Alternar entre criar família e entrar em família
+function selecionarModo(novoModo) {
+
+  modo = novoModo;
+
+  const criando = modo === "criar";
+
+  document.getElementById("campoFamilia")
+    .classList.toggle("oculto", !criando);
+
+  document.getElementById("campoConvite")
+    .classList.toggle("oculto", criando);
+
+  document.getElementById("familia").required = criando;
+
+  document.getElementById("codigoConvite").required = !criando;
+
+  document.getElementById("opcaoCriar")
+    .classList.toggle("ativa", criando);
+
+  document.getElementById("opcaoEntrar")
+    .classList.toggle("ativa", !criando);
+
+  botao.textContent = criando
+    ? "CRIAR MINHA FAMÍLIA"
+    : "ENTRAR NA FAMÍLIA";
+
+  mensagem.textContent = "";
+  mensagem.className = "";
+}
+
+function mostrarMensagem(texto, tipo) {
+  mensagem.className = tipo;
+  mensagem.textContent = texto;
+}
+
+// Criar uma nova família
+async function criarNovaFamilia(usuario, dados) {
+
+  const familiaId = usuario.uid;
+
+  // 1. Criar família
+  await db.collection("familias")
+    .doc(familiaId)
+    .set({
+      nome: dados.familia,
+      ownerUid: usuario.uid,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      status: "ATIVA"
+    });
+
+  // 2. Criar administrador e perfil na mesma operação
+  const batch = db.batch();
+
+  const membroRef = db.collection("familias")
+    .doc(familiaId)
+    .collection("membros")
+    .doc(usuario.uid);
+
+  const usuarioRef = db.collection("usuarios")
+    .doc(usuario.uid);
+
+  batch.set(membroRef, {
+    nome: dados.nome,
+    email: dados.email,
+    role: "admin",
+    ativo: true,
+    criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  batch.set(usuarioRef, {
+    nome: dados.nome,
+    email: dados.email,
+    familiaId: familiaId,
+    criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  await batch.commit();
+
+  return familiaId;
+}
+
+// Entrar em uma família através de convite
+async function entrarNaFamilia(usuario, dados) {
+
+  const partes = dados.codigo.split("~");
+
+  if (partes.length !== 2 || !partes[0] || !partes[1]) {
+    throw new Error("Código inválido. Confira o código recebido.");
+  }
+
+  const familiaId = partes[0].trim();
+  const codigo = partes[1].trim();
+
+  if (!familiaId || !codigo) {
+    throw new Error("Código de convite incompleto.");
+  }
+
+  const conviteRef = db.collection("familias")
+    .doc(familiaId)
+    .collection("convites")
+    .doc(codigo);
+
+  // Consultar convite com o usuário já autenticado
+  const conviteDoc = await conviteRef.get();
+
+  if (!conviteDoc.exists) {
+    throw new Error("Convite não encontrado.");
+  }
+
+  const convite = conviteDoc.data();
+
+  if (convite.status !== "PENDENTE") {
+    throw new Error("Este convite já foi utilizado ou cancelado.");
+  }
+
+  if (
+    String(convite.email || "").trim().toLowerCase() !== dados.email
+  ) {
+    throw new Error("Este convite foi criado para outro e-mail.");
+  }
+
+  // Conferir se a família continua ativa
+  // A confirmação da família e do convite também é feita pelas regras.
+  const batch = db.batch();
+
+  const membroRef = db.collection("familias")
+    .doc(familiaId)
+    .collection("membros")
+    .doc(usuario.uid);
+
+  const usuarioRef = db.collection("usuarios")
+    .doc(usuario.uid);
+
+  // Criar membro
+  batch.set(membroRef, {
+    nome: dados.nome,
+    email: dados.email,
+    role: "membro",
+    ativo: true,
+    conviteCodigo: codigo,
+    criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Criar perfil
+  batch.set(usuarioRef, {
+    nome: dados.nome,
+    email: dados.email,
+    familiaId: familiaId,
+    criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Marcar convite como aceito
+  batch.update(conviteRef, {
+    status: "ACEITO",
+    aceitoPorUid: usuario.uid,
+    aceitoEm: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // As três alterações acontecem juntas.
+  await batch.commit();
+
+  return familiaId;
+}
+
+// Cadastro
+form.addEventListener("submit", async function(e) {
+
+  e.preventDefault();
+
+  const nome = document.getElementById("nome").value.trim();
+
+  const familia = document.getElementById("familia").value.trim();
+
+  const email = document.getElementById("email")
+    .value.trim().toLowerCase();
+
+  const senha = document.getElementById("senha").value;
+
+  const codigo = document.getElementById("codigoConvite")
+    .value.trim();
+
+  if (!nome || !email || senha.length < 6) {
+    mostrarMensagem(
+      "Preencha todos os campos corretamente.",
+      "erro"
+    );
+    return;
+  }
+
+  if (modo === "criar" && !familia) {
+    mostrarMensagem(
+      "Informe o nome da família.",
+      "erro"
+    );
+    return;
+  }
+
+  if (modo === "entrar" && !codigo) {
+    mostrarMensagem(
+      "Informe o código do convite.",
+      "erro"
+    );
+    return;
+  }
+
+  botao.disabled = true;
+  botao.textContent = "CRIANDO CONTA...";
+  mensagem.textContent = "";
+
+  let usuario = null;
+  let cadastroConcluido = false;
+
+  try {
+
+    // 1. Criar conta no Firebase Authentication
+    const resultado = await auth.createUserWithEmailAndPassword(
+      email,
+      senha
+    );
+
+    usuario = resultado.user;
+
+    // 2. Atualizar nome
+    await usuario.updateProfile({
+      displayName: nome
+    });
+
+    // 3. Criar família ou aceitar convite
+    if (modo === "criar") {
+
+      await criarNovaFamilia(usuario, {
+        nome,
+        familia,
+        email
+      });
+
+    } else {
+
+      await entrarNaFamilia(usuario, {
+        nome,
+        email,
+        codigo
+      });
+
+    }
+
+    cadastroConcluido = true;
+
+    mostrarMensagem(
+      modo === "criar"
+        ? "Família criada com sucesso! Redirecionando..."
+        : "Você entrou na família com sucesso! Redirecionando...",
+      "sucesso"
+    );
+
+    botao.textContent = "CADASTRO CONCLUÍDO";
+
+    setTimeout(function() {
+      window.location.href = "dashboard.html";
+    }, 1200);
+
+  } catch (erro) {
+
+    console.error("Erro no cadastro:", erro);
+
+    // Se o cadastro falhou, tentar remover a conta Auth recém-criada.
+    if (usuario && !cadastroConcluido) {
+
+      try {
+        await usuario.delete();
+      } catch (erroExclusao) {
+        console.error(
+          "Não foi possível remover a conta criada:",
+          erroExclusao
+        );
+
+        await auth.signOut();
+      }
+
+      const texto = erro.message || erro.code || "";
+
+      mostrarMensagem(
+        "Não foi possível concluir o cadastro. " +
+        texto +
+        " Se a conta permanecer cadastrada, não tente criá-la novamente; entre em contato com o suporte.",
+        "erro"
+      );
+
+    } else {
+
+      const erros = {
+        "auth/email-already-in-use":
+          "Este e-mail já está cadastrado. Acesse sua conta pelo login.",
+
+        "auth/invalid-email":
+          "O endereço de e-mail é inválido.",
+
+        "auth/weak-password":
+          "A senha precisa ter pelo menos 6 caracteres.",
+
+        "auth/network-request-failed":
+          "Verifique sua conexão com a internet.",
+
+        "auth/too-many-requests":
+          "Muitas tentativas. Aguarde um pouco e tente novamente."
+      };
+
+      mostrarMensagem(
+        erros[erro.code] || erro.message || "Não foi possível criar a conta.",
+        "erro"
+      );
+    }
+
+  } finally {
+
+    botao.disabled = false;
+
+    botao.textContent = modo === "criar"
+      ? "CRIAR MINHA FAMÍLIA"
+      : "ENTRAR NA FAMÍLIA";
+
+  }
+
+});
+
+</script>
+
+</body>
+</html>

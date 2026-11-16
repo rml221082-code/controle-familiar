@@ -1,0 +1,441 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista de Compras</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f4f3;color:#222}
+header{background:#121111;color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h2{margin:0;color:#65c466}
+button{border:0;border-radius:7px;padding:11px 15px;font-weight:bold;cursor:pointer}
+.voltar{background:#444;color:white}
+main{max-width:1000px;margin:auto;padding:20px}
+.familia,.painel,.formulario,.lista{background:white;padding:20px;border-radius:12px;margin-bottom:18px}
+.familia{border-left:5px solid #176b35}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px}
+.resumo div{background:white;padding:18px;border-radius:10px}
+.resumo small{color:#777}
+.resumo h2{margin:8px 0 0;color:#176b35}
+.form-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+input,select{width:100%;padding:12px;border:1px solid #ccc;border-radius:7px;font-size:15px;background:white}
+label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}
+.campo{margin-bottom:12px}
+.adicionar{background:#176b35;color:white;width:100%;margin-top:5px}
+.item{border:1px solid #eee;border-radius:9px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.item.comprado{background:#f0f8f0;opacity:.8}
+.item.comprado .produto{text-decoration:line-through;color:#777}
+.info{flex:1;min-width:0}
+.produto{font-weight:bold;font-size:16px;overflow-wrap:anywhere}
+.detalhes{font-size:12px;color:#777;margin-top:5px}
+.acoes{display:flex;gap:6px;flex-wrap:wrap}
+.btn-comprado{background:#176b35;color:white}
+.btn-excluir{background:#a83232;color:white}
+.vazio{text-align:center;color:#888;padding:30px}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
+.filtros button{background:#eee;color:#333}
+.filtros button.ativo{background:#176b35;color:white}
+.rodape{text-align:center;color:#888;padding:20px}
+@media(max-width:650px){
+ main{padding:12px}
+ .form-grid{grid-template-columns:1fr}
+ .item{align-items:flex-start;flex-direction:column}
+ .acoes{width:100%}
+ .acoes button{flex:1}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>🛒 Lista de Compras</h2>
+  <button class="voltar" onclick="location.href='index.html'">← Menu</button>
+</header>
+
+<main>
+
+  <div class="familia">
+    <strong id="nomeFamilia">Carregando família...</strong>
+    <div id="nomeUsuario" style="font-size:13px;color:#777;margin-top:5px"></div>
+  </div>
+
+  <div class="resumo">
+    <div>
+      <small>Produtos na lista</small>
+      <h2 id="totalProdutos">0</h2>
+    </div>
+    <div>
+      <small>Valor estimado</small>
+      <h2 id="totalEstimado">R$ 0,00</h2>
+    </div>
+    <div>
+      <small>Total gasto</small>
+      <h2 id="totalGasto">R$ 0,00</h2>
+    </div>
+  </div>
+
+  <section class="formulario">
+    <h3>➕ Adicionar produto</h3>
+
+    <form id="formCompra">
+      <div class="campo">
+        <label>Nome do produto</label>
+        <input id="descricao" type="text" placeholder="Ex.: Arroz, Leite, Detergente" required>
+      </div>
+
+      <div class="form-grid">
+        <div class="campo">
+          <label>Categoria</label>
+          <select id="categoria">
+            <option>Alimentação</option>
+            <option>Limpeza</option>
+            <option>Higiene</option>
+            <option>Bebidas</option>
+            <option>Outros</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label>Quantidade</label>
+          <input id="quantidade" type="number" min="0.01" step="0.01" value="1" required>
+        </div>
+
+        <div class="campo">
+          <label>Unidade</label>
+          <select id="unidade">
+            <option>un.</option>
+            <option>kg</option>
+            <option>g</option>
+            <option>litro</option>
+            <option>ml</option>
+            <option>pacote</option>
+            <option>caixa</option>
+            <option>garrafa</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Valor estimado unitário (R$)</label>
+        <input id="valorEstimado" type="number" min="0" step="0.01" placeholder="0,00">
+      </div>
+
+      <button class="adicionar" type="submit" id="btnAdicionar">
+        ➕ Adicionar à lista
+      </button>
+    </form>
+  </section>
+
+  <section class="lista">
+    <h3>📋 Produtos da família</h3>
+
+    <div class="filtros">
+      <button class="ativo" onclick="filtrar('TODOS',this)">Todos</button>
+      <button onclick="filtrar('PENDENTE',this)">Pendentes</button>
+      <button onclick="filtrar('COMPRADO',this)">Comprados</button>
+    </div>
+
+    <div id="listaProdutos">
+      <div class="vazio">Carregando produtos...</div>
+    </div>
+  </section>
+
+  <div class="rodape">Controle Familiar © 2026</div>
+
+</main>
+
+<script>
+let familiaId = null;
+let usuarioAtual = null;
+let produtos = [];
+let filtroAtual = "TODOS";
+let carregando = false;
+
+function colecaoCompras(){
+  return db.collection("familias")
+    .doc(familiaId)
+    .collection("compras");
+}
+
+function dinheiro(valor){
+  return Number(valor || 0).toLocaleString("pt-BR",{
+    style:"currency",
+    currency:"BRL"
+  });
+}
+
+function escapar(valor){
+  return String(valor ?? "").replace(/[&<>"']/g,function(c){
+    return {
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[c];
+  });
+}
+
+auth.onAuthStateChanged(async function(user){
+
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  usuarioAtual=user;
+
+  try{
+    const perfil=await db.collection("usuarios").doc(user.uid).get();
+
+    if(!perfil.exists || !perfil.data().familiaId){
+      await auth.signOut();
+      location.href="login.html";
+      return;
+    }
+
+    const dados=perfil.data();
+    familiaId=dados.familiaId;
+
+    const familia=await db.collection("familias").doc(familiaId).get();
+
+    const membro=await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .doc(user.uid).get();
+
+    if(!familia.exists || !membro.exists ||
+       membro.data().ativo!==true ||
+       familia.data().status!=="ATIVA"){
+      await auth.signOut();
+      location.href="login.html";
+      return;
+    }
+
+    document.getElementById("nomeFamilia").textContent=
+      "Família: "+familia.data().nome;
+
+    document.getElementById("nomeUsuario").textContent=
+      "Olá, "+(dados.nome || user.displayName || "Usuário");
+
+    await carregarProdutos();
+
+  }catch(erro){
+    console.error("Erro ao validar acesso:",erro);
+    alert("Não foi possível carregar os dados da família.");
+  }
+
+});
+
+async function carregarProdutos(){
+
+  if(carregando) return;
+  carregando=true;
+
+  try{
+    const snapshot=await colecaoCompras().get();
+
+    produtos=[];
+
+    snapshot.forEach(doc=>{
+      produtos.push({
+        id:doc.id,
+        ...doc.data()
+      });
+    });
+
+    produtos.sort((a,b)=>{
+      if(a.comprado!==b.comprado) return a.comprado ? 1 : -1;
+      return String(a.descricao || "").localeCompare(
+        String(b.descricao || ""),"pt-BR"
+      );
+    });
+
+    renderizar();
+
+  }catch(erro){
+    console.error("Erro ao carregar compras:",erro);
+    document.getElementById("listaProdutos").innerHTML=
+      '<div class="vazio">Não foi possível carregar a lista. Verifique as permissões do Firestore.</div>';
+  }finally{
+    carregando=false;
+  }
+}
+
+document.getElementById("formCompra").addEventListener("submit",async function(e){
+
+  e.preventDefault();
+
+  const descricao=document.getElementById("descricao").value.trim();
+  const categoria=document.getElementById("categoria").value;
+  const quantidade=Number(document.getElementById("quantidade").value);
+  const unidade=document.getElementById("unidade").value;
+  const valorEstimado=Number(document.getElementById("valorEstimado").value || 0);
+
+  if(!descricao || quantidade<=0 || valorEstimado<0){
+    alert("Confira os dados do produto.");
+    return;
+  }
+
+  const botao=document.getElementById("btnAdicionar");
+  botao.disabled=true;
+  botao.textContent="Salvando...";
+
+  try{
+    await colecaoCompras().add({
+      descricao:descricao,
+      categoria:categoria,
+      quantidade:quantidade,
+      unidade:unidade,
+      valorEstimado:valorEstimado,
+      valorReal:0,
+      comprado:false,
+      criadoPor:usuarioAtual.uid,
+      criadoPorNome:usuarioAtual.displayName || usuarioAtual.email || "Integrante",
+      criadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    this.reset();
+    document.getElementById("quantidade").value=1;
+
+    await carregarProdutos();
+
+  }catch(erro){
+    console.error("Erro ao adicionar produto:",erro);
+    alert("Não foi possível adicionar o produto.");
+  }finally{
+    botao.disabled=false;
+    botao.textContent="➕ Adicionar à lista";
+  }
+
+});
+
+function renderizar(){
+
+  const lista=document.getElementById("listaProdutos");
+
+  let totalEstimado=0;
+  let totalGasto=0;
+
+  produtos.forEach(p=>{
+    const quantidade=Number(p.quantidade || 0);
+    totalEstimado+=quantidade*Number(p.valorEstimado || 0);
+
+    if(p.comprado){
+      totalGasto+=quantidade*Number(p.valorReal || p.valorEstimado || 0);
+    }
+  });
+
+  document.getElementById("totalProdutos").textContent=produtos.length;
+  document.getElementById("totalEstimado").textContent=dinheiro(totalEstimado);
+  document.getElementById("totalGasto").textContent=dinheiro(totalGasto);
+
+  const filtrados=produtos.filter(p=>{
+    if(filtroAtual==="PENDENTE") return !p.comprado;
+    if(filtroAtual==="COMPRADO") return p.comprado;
+    return true;
+  });
+
+  if(!filtrados.length){
+    lista.innerHTML='<div class="vazio">Nenhum produto nesta seleção.</div>';
+    return;
+  }
+
+  lista.innerHTML=filtrados.map(p=>`
+    <div class="item ${p.comprado ? "comprado" : ""}">
+      <div class="info">
+        <div class="produto">${escapar(p.descricao)}</div>
+        <div class="detalhes">
+          ${escapar(p.categoria)} ·
+          ${p.quantidade} ${escapar(p.unidade)} ·
+          Estimado: ${dinheiro(Number(p.valorEstimado || 0)*Number(p.quantidade || 0))}
+          ${p.comprado ? "<br>Comprado por: "+escapar(p.compradoPorNome || "Integrante")+" · Pago: "+dinheiro(Number(p.valorReal || 0)*Number(p.quantidade || 0)) : ""}
+        </div>
+      </div>
+
+      <div class="acoes">
+        ${p.comprado ? "" : `<button class="btn-comprado" onclick="marcarComprado('${p.id}')">✓ Comprar</button>`}
+        <button class="btn-excluir" onclick="excluirProduto('${p.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join("");
+
+}
+
+function filtrar(filtro,botao){
+  filtroAtual=filtro;
+
+  document.querySelectorAll(".filtros button").forEach(b=>{
+    b.classList.remove("ativo");
+  });
+
+  botao.classList.add("ativo");
+  renderizar();
+}
+
+async function marcarComprado(id){
+
+  const produto=produtos.find(p=>p.id===id);
+  if(!produto) return;
+
+  const valor=prompt(
+    "Informe o valor REAL pago por unidade:",
+    Number(produto.valorEstimado || 0).toFixed(2)
+  );
+
+  if(valor===null) return;
+
+  const valorReal=Number(valor.replace(",","."));
+
+  if(!Number.isFinite(valorReal) || valorReal<0){
+    alert("Informe um valor válido.");
+    return;
+  }
+
+  try{
+    await colecaoCompras().doc(id).update({
+      comprado:true,
+      valorReal:valorReal,
+      compradoPor:usuarioAtual.uid,
+      compradoPorNome:usuarioAtual.displayName || usuarioAtual.email || "Integrante",
+      compradoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await carregarProdutos();
+
+  }catch(erro){
+    console.error(erro);
+    alert("Não foi possível atualizar o produto.");
+  }
+
+}
+
+async function excluirProduto(id){
+
+  if(!confirm("Deseja realmente excluir este produto?")) return;
+
+  try{
+    await colecaoCompras().doc(id).delete();
+    await carregarProdutos();
+  }catch(erro){
+    console.error(erro);
+    alert("Não foi possível excluir o produto.");
+  }
+
+}
+
+</script>
+
+</body>
+</html>

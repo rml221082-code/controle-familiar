@@ -1,0 +1,576 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenda Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f4f3;color:#222}
+header{background:#121111;color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h2{margin:0;color:#65c466}
+button{border:0;border-radius:7px;padding:11px 15px;font-weight:bold;cursor:pointer}
+.voltar{background:#444;color:white}
+main{max-width:1000px;margin:auto;padding:20px}
+.familia,.formulario,.lista{background:white;padding:20px;border-radius:12px;margin-bottom:18px}
+.familia{border-left:5px solid #176b35}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.resumo div{background:white;padding:17px;border-radius:10px}
+.resumo small{color:#777}
+.resumo h2{margin:8px 0 0;color:#176b35}
+.campo{margin-bottom:13px}
+label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:7px;font-size:15px;background:white}
+textarea{resize:vertical;min-height:75px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.salvar{background:#176b35;color:white;width:100%;margin-top:5px}
+.cancelar{background:#777;color:white;width:100%;margin-top:8px}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filtros button{background:#eee;color:#333}
+.filtros button.ativo{background:#176b35;color:white}
+.dia{font-size:14px;font-weight:bold;color:#176b35;margin:20px 0 10px;border-bottom:1px solid #ddd;padding-bottom:7px}
+.compromisso{border:1px solid #eee;border-radius:10px;padding:15px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+.horario{background:#eaf4ec;color:#176b35;padding:10px;border-radius:8px;font-weight:bold;min-width:65px;text-align:center}
+.info{flex:1;min-width:0}
+.titulo{font-weight:bold;font-size:16px;overflow-wrap:anywhere}
+.descricao{font-size:13px;color:#666;margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.detalhes{font-size:12px;color:#777;margin-top:7px;line-height:1.7}
+.acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.editar{background:#e5a323;color:#222}
+.concluir{background:#176b35;color:white}
+.excluir{background:#a83232;color:white}
+.status{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:bold;margin-top:8px}
+.pendente{background:#fff0c9;color:#8a6200}
+.concluido{background:#d9f2df;color:#176b35}
+.cancelado{background:#f9dddd;color:#a83232}
+.vazio{text-align:center;color:#888;padding:30px}
+.rodape{text-align:center;color:#888;padding:20px}
+@media(max-width:600px){
+ main{padding:12px}
+ .form-grid{grid-template-columns:1fr}
+ .compromisso{flex-wrap:wrap}
+ .horario{min-width:55px}
+ .acoes{width:100%}
+ .acoes button{flex:1}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>📅 Agenda Familiar</h2>
+  <button class="voltar" onclick="location.href='index.html'">← Menu</button>
+</header>
+
+<main>
+
+  <div class="familia">
+    <strong id="nomeFamilia">Carregando família...</strong>
+    <div id="nomeUsuario" style="font-size:13px;color:#777;margin-top:5px"></div>
+  </div>
+
+  <div class="resumo">
+    <div>
+      <small>Total de compromissos</small>
+      <h2 id="totalCompromissos">0</h2>
+    </div>
+    <div>
+      <small>Pendentes</small>
+      <h2 id="totalPendentes">0</h2>
+    </div>
+    <div>
+      <small>Concluídos</small>
+      <h2 id="totalConcluidos">0</h2>
+    </div>
+  </div>
+
+  <section class="formulario">
+    <h3 id="tituloFormulario">➕ Novo compromisso</h3>
+
+    <form id="formAgenda">
+
+      <div class="campo">
+        <label>Título do compromisso</label>
+        <input id="titulo" type="text" maxlength="100"
+          placeholder="Ex.: Consulta médica, reunião, aniversário" required>
+      </div>
+
+      <div class="campo">
+        <label>Descrição</label>
+        <textarea id="descricao" maxlength="1000"
+          placeholder="Detalhes do compromisso (opcional)"></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="campo">
+          <label>Data</label>
+          <input id="data" type="date" required>
+        </div>
+
+        <div class="campo">
+          <label>Horário</label>
+          <input id="hora" type="time">
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Local</label>
+        <input id="local" type="text" maxlength="150"
+          placeholder="Onde será o compromisso?">
+      </div>
+
+      <div class="campo">
+        <label>Responsável</label>
+        <input id="responsavel" type="text" maxlength="100"
+          placeholder="Quem ficará responsável?">
+      </div>
+
+      <div class="campo" id="campoStatus" style="display:none">
+        <label>Status</label>
+        <select id="status">
+          <option value="PENDENTE">Pendente</option>
+          <option value="CONCLUIDO">Concluído</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+      </div>
+
+      <button class="salvar" type="submit" id="btnSalvar">
+        ➕ Salvar compromisso
+      </button>
+
+      <button class="cancelar" type="button" id="btnCancelar"
+        onclick="cancelarEdicao()" style="display:none">
+        Cancelar edição
+      </button>
+
+    </form>
+  </section>
+
+  <section class="lista">
+    <h3>📋 Compromissos da família</h3>
+
+    <div class="filtros">
+      <button class="ativo" onclick="filtrar('TODOS',this)">Todos</button>
+      <button onclick="filtrar('PENDENTE',this)">Pendentes</button>
+      <button onclick="filtrar('CONCLUIDO',this)">Concluídos</button>
+      <button onclick="filtrar('CANCELADO',this)">Cancelados</button>
+    </div>
+
+    <div id="listaAgenda">
+      <div class="vazio">Carregando agenda...</div>
+    </div>
+  </section>
+
+  <div class="rodape">Controle Familiar © 2026</div>
+
+</main>
+
+<script>
+let familiaId=null;
+let usuarioAtual=null;
+let compromissos=[];
+let filtroAtual="TODOS";
+let editandoId=null;
+let carregando=false;
+
+function colecaoAgenda(){
+  return db.collection("familias")
+    .doc(familiaId)
+    .collection("agenda");
+}
+
+function escapar(valor){
+  return String(valor ?? "").replace(/[&<>"']/g,function(c){
+    return {
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[c];
+  });
+}
+
+function formatarData(data){
+  if(!data) return "";
+  const partes=data.split("-");
+  return partes.length===3
+    ? partes[2]+"/"+partes[1]+"/"+partes[0]
+    : data;
+}
+
+function textoStatus(status){
+  return {
+    PENDENTE:"Pendente",
+    CONCLUIDO:"Concluído",
+    CANCELADO:"Cancelado"
+  }[status] || "Pendente";
+}
+
+function classeStatus(status){
+  return {
+    PENDENTE:"pendente",
+    CONCLUIDO:"concluido",
+    CANCELADO:"cancelado"
+  }[status] || "pendente";
+}
+
+auth.onAuthStateChanged(async function(user){
+
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  usuarioAtual=user;
+
+  try{
+
+    const perfil=await db.collection("usuarios")
+      .doc(user.uid).get();
+
+    if(!perfil.exists || !perfil.data().familiaId){
+      await auth.signOut();
+      location.href="login.html";
+      return;
+    }
+
+    const dados=perfil.data();
+    familiaId=dados.familiaId;
+
+    const familia=await db.collection("familias")
+      .doc(familiaId).get();
+
+    const membro=await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .doc(user.uid).get();
+
+    if(!familia.exists || !membro.exists ||
+       membro.data().ativo!==true ||
+       familia.data().status!=="ATIVA"){
+      await auth.signOut();
+      location.href="login.html";
+      return;
+    }
+
+    document.getElementById("nomeFamilia").textContent=
+      "Família: "+familia.data().nome;
+
+    document.getElementById("nomeUsuario").textContent=
+      "Olá, "+(dados.nome || user.displayName || "Usuário");
+
+    document.getElementById("data").value=
+      new Date().toLocaleDateString("en-CA");
+
+    await carregarAgenda();
+
+  }catch(erro){
+    console.error("Erro ao validar acesso:",erro);
+    alert("Não foi possível carregar os dados da família.");
+  }
+
+});
+
+async function carregarAgenda(){
+
+  if(carregando) return;
+  carregando=true;
+
+  try{
+
+    const snapshot=await colecaoAgenda().get();
+
+    compromissos=[];
+
+    snapshot.forEach(doc=>{
+      compromissos.push({
+        id:doc.id,
+        ...doc.data()
+      });
+    });
+
+    compromissos.sort((a,b)=>{
+      const dataA=(a.data || "")+" "+(a.hora || "23:59");
+      const dataB=(b.data || "")+" "+(b.hora || "23:59");
+      return dataA.localeCompare(dataB);
+    });
+
+    renderizar();
+
+  }catch(erro){
+    console.error("Erro ao carregar agenda:",erro);
+    document.getElementById("listaAgenda").innerHTML=
+      '<div class="vazio">Não foi possível carregar a agenda. Verifique as permissões do Firestore.</div>';
+  }finally{
+    carregando=false;
+  }
+
+}
+
+document.getElementById("formAgenda").addEventListener("submit",async function(e){
+
+  e.preventDefault();
+
+  const titulo=document.getElementById("titulo").value.trim();
+  const descricao=document.getElementById("descricao").value.trim();
+  const data=document.getElementById("data").value;
+  const hora=document.getElementById("hora").value;
+  const localCompromisso=document.getElementById("local").value.trim();
+  const responsavel=document.getElementById("responsavel").value.trim();
+  const status=document.getElementById("status").value;
+
+  if(!titulo || !data){
+    alert("Informe o título e a data.");
+    return;
+  }
+
+  const botao=document.getElementById("btnSalvar");
+  botao.disabled=true;
+  botao.textContent="Salvando...";
+
+  try{
+
+    const dados={
+      titulo:titulo,
+      descricao:descricao,
+      data:data,
+      hora:hora,
+      local:localCompromisso,
+      responsavel:responsavel,
+      status:editandoId ? status : "PENDENTE",
+      atualizadoPor:usuarioAtual.uid,
+      atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if(editandoId){
+
+      await colecaoAgenda().doc(editandoId).update(dados);
+
+    }else{
+
+      dados.criadoPor=usuarioAtual.uid;
+      dados.criadoPorNome=usuarioAtual.displayName ||
+        usuarioAtual.email || "Integrante";
+      dados.criadoEm=firebase.firestore.FieldValue.serverTimestamp();
+
+      await colecaoAgenda().add(dados);
+
+    }
+
+    cancelarEdicao();
+    await carregarAgenda();
+
+  }catch(erro){
+    console.error("Erro ao salvar compromisso:",erro);
+    alert("Não foi possível salvar o compromisso.");
+  }finally{
+    botao.disabled=false;
+    botao.textContent=editandoId
+      ? "Salvar alterações"
+      : "➕ Salvar compromisso";
+  }
+
+});
+
+function renderizar(){
+
+  document.getElementById("totalCompromissos").textContent=
+    compromissos.length;
+
+  document.getElementById("totalPendentes").textContent=
+    compromissos.filter(p=>p.status==="PENDENTE").length;
+
+  document.getElementById("totalConcluidos").textContent=
+    compromissos.filter(p=>p.status==="CONCLUIDO").length;
+
+  const filtrados=compromissos.filter(p=>{
+    return filtroAtual==="TODOS" || p.status===filtroAtual;
+  });
+
+  const lista=document.getElementById("listaAgenda");
+
+  if(!filtrados.length){
+    lista.innerHTML='<div class="vazio">Nenhum compromisso encontrado.</div>';
+    return;
+  }
+
+  let html="";
+  let ultimaData="";
+
+  filtrados.forEach(p=>{
+
+    if(p.data!==ultimaData){
+      ultimaData=p.data;
+
+      html+=`
+        <div class="dia">📅 ${formatarData(p.data)}</div>
+      `;
+    }
+
+    html+=`
+      <div class="compromisso">
+
+        <div class="horario">
+          ${p.hora ? escapar(p.hora) : "--:--"}
+        </div>
+
+        <div class="info">
+
+          <div class="titulo">${escapar(p.titulo)}</div>
+
+          ${p.descricao ? `
+            <div class="descricao">${escapar(p.descricao)}</div>
+          ` : ""}
+
+          <div class="detalhes">
+            ${p.local ? "📍 "+escapar(p.local)+"<br>" : ""}
+            ${p.responsavel ? "👤 Responsável: "+escapar(p.responsavel)+"<br>" : ""}
+          </div>
+
+          <span class="status ${classeStatus(p.status)}">
+            ${textoStatus(p.status)}
+          </span>
+
+          <div class="acoes">
+
+            <button class="editar"
+              onclick="editarCompromisso('${p.id}')">
+              ✏️ Editar
+            </button>
+
+            ${p.status==="PENDENTE" ? `
+              <button class="concluir"
+                onclick="alterarStatus('${p.id}','CONCLUIDO')">
+                ✓ Concluir
+              </button>
+            ` : ""}
+
+            ${p.status==="PENDENTE" ? `
+              <button class="cancelar"
+                onclick="alterarStatus('${p.id}','CANCELADO')">
+                Cancelar
+              </button>
+            ` : ""}
+
+            <button class="excluir"
+              onclick="excluirCompromisso('${p.id}')">
+              Excluir
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+    `;
+
+  });
+
+  lista.innerHTML=html;
+
+}
+
+function filtrar(filtro,botao){
+
+  filtroAtual=filtro;
+
+  document.querySelectorAll(".filtros button").forEach(b=>{
+    b.classList.remove("ativo");
+  });
+
+  botao.classList.add("ativo");
+  renderizar();
+
+}
+
+function editarCompromisso(id){
+
+  const p=compromissos.find(item=>item.id===id);
+  if(!p) return;
+
+  editandoId=id;
+
+  document.getElementById("titulo").value=p.titulo || "";
+  document.getElementById("descricao").value=p.descricao || "";
+  document.getElementById("data").value=p.data || "";
+  document.getElementById("hora").value=p.hora || "";
+  document.getElementById("local").value=p.local || "";
+  document.getElementById("responsavel").value=p.responsavel || "";
+  document.getElementById("status").value=p.status || "PENDENTE";
+
+  document.getElementById("campoStatus").style.display="block";
+  document.getElementById("tituloFormulario").textContent="✏️ Editar compromisso";
+  document.getElementById("btnSalvar").textContent="Salvar alterações";
+  document.getElementById("btnCancelar").style.display="block";
+
+  window.scrollTo({top:0,behavior:"smooth"});
+
+}
+
+function cancelarEdicao(){
+
+  editandoId=null;
+
+  document.getElementById("formAgenda").reset();
+  document.getElementById("data").value=
+    new Date().toLocaleDateString("en-CA");
+
+  document.getElementById("campoStatus").style.display="none";
+  document.getElementById("tituloFormulario").textContent="➕ Novo compromisso";
+  document.getElementById("btnSalvar").textContent="➕ Salvar compromisso";
+  document.getElementById("btnCancelar").style.display="none";
+
+}
+
+async function alterarStatus(id,status){
+
+  try{
+
+    await colecaoAgenda().doc(id).update({
+      status:status,
+      atualizadoPor:usuarioAtual.uid,
+      atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await carregarAgenda();
+
+  }catch(erro){
+    console.error(erro);
+    alert("Não foi possível atualizar o compromisso.");
+  }
+
+}
+
+async function excluirCompromisso(id){
+
+  if(!confirm("Deseja realmente excluir este compromisso?")) return;
+
+  try{
+
+    await colecaoAgenda().doc(id).delete();
+
+    if(editandoId===id) cancelarEdicao();
+
+    await carregarAgenda();
+
+  }catch(erro){
+    console.error(erro);
+    alert("Não foi possível excluir o compromisso.");
+  }
+
+}
+
+</script>
+
+</body>
+</html>

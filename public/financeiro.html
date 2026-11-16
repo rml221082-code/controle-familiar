@@ -1,0 +1,1087 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Financeiro - Controle Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f2f4f3;
+  color:#222;
+}
+
+header {
+  background:#121111;
+  color:white;
+  padding:17px 22px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+header h2 {
+  margin:0;
+  color:#65c466;
+}
+
+button {
+  border:0;
+  border-radius:7px;
+  padding:11px 16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-menu {
+  background:#333;
+  color:white;
+}
+
+main {
+  max-width:1100px;
+  margin:auto;
+  padding:22px;
+}
+
+.topo {
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  margin-bottom:18px;
+}
+
+.topo h2 { margin-top:0; }
+
+.resumo {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.card {
+  background:white;
+  padding:18px;
+  border-radius:12px;
+  border:1px solid #e8e8e8;
+}
+
+.card small {
+  color:#777;
+  font-size:13px;
+}
+
+.valor {
+  font-size:23px;
+  font-weight:bold;
+  margin-top:9px;
+}
+
+.verde { color:#168044; }
+.vermelho { color:#c0392b; }
+.laranja { color:#c27b16; }
+
+.formulario {
+  background:white;
+  padding:22px;
+  border-radius:12px;
+  margin-bottom:20px;
+}
+
+.formulario h3 { margin-top:0; }
+
+.campos {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:12px;
+}
+
+.campo label {
+  display:block;
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+input, select {
+  width:100%;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:7px;
+  font-size:15px;
+  background:white;
+}
+
+.btn-salvar {
+  background:#176b35;
+  color:white;
+  width:100%;
+  margin-top:15px;
+  padding:14px;
+}
+
+.btn-salvar:disabled {
+  opacity:.6;
+  cursor:wait;
+}
+
+.historico {
+  background:white;
+  border-radius:12px;
+  padding:20px;
+}
+
+.filtros {
+  display:flex;
+  align-items:end;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:15px;
+}
+
+.filtros .campo {
+  flex:1;
+  min-width:180px;
+}
+
+.lancamento {
+  border:1px solid #eee;
+  border-radius:9px;
+  padding:14px;
+  margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.lancamento strong {
+  display:block;
+  margin-bottom:5px;
+}
+
+.detalhes {
+  color:#777;
+  font-size:12px;
+}
+
+.direita {
+  text-align:right;
+  white-space:nowrap;
+}
+
+.excluir {
+  background:#fbeaea;
+  color:#b52d2d;
+  padding:7px 10px;
+  margin-top:6px;
+  font-size:12px;
+}
+
+.btn-acao {
+  padding:7px 10px;
+  margin-top:6px;
+  font-size:12px;
+}
+.btn-editar { background:#e8f0fe; color:#2457a6; }
+.btn-baixa { background:#e5f5e9; color:#176b35; }
+.btn-cancelar {
+  background:#777;
+  color:white;
+  width:100%;
+  margin-top:8px;
+  padding:12px;
+}
+
+.status {
+  display:inline-block;
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:20px;
+  margin-top:5px;
+}
+
+.pago {
+  background:#e5f5e9;
+  color:#176b35;
+}
+
+.pendente {
+  background:#fff1d9;
+  color:#9b6411;
+}
+
+#mensagem {
+  margin-top:12px;
+  font-size:14px;
+  overflow-wrap:anywhere;
+}
+
+.vazio {
+  text-align:center;
+  color:#888;
+  padding:25px 10px;
+}
+
+.rodape {
+  text-align:center;
+  padding:25px;
+  color:#888;
+  font-size:13px;
+}
+
+@media(max-width:500px) {
+  main { padding:13px; }
+  .lancamento { align-items:flex-start; }
+  .valor { font-size:20px; }
+}
+
+.recorrentes {
+  background:white;
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:20px;
+}
+.recorrentes h3 { margin-top:0; }
+.btn-recorrente {
+  background:#176b35;
+  color:white;
+  width:100%;
+  margin-top:14px;
+  padding:13px;
+}
+.item-recorrente {
+  border:1px solid #eee;
+  border-radius:9px;
+  padding:13px;
+  margin-top:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.acoes-recorrente { text-align:right; white-space:nowrap; }
+.btn-pausar { background:#fff1d9; color:#8a5b10; padding:7px 10px; font-size:12px; }
+.btn-ativar { background:#e5f5e9; color:#176b35; padding:7px 10px; font-size:12px; }
+.btn-excluir-rec { background:#fbeaea; color:#b52d2d; padding:7px 10px; font-size:12px; }
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>💰 Financeiro</h2>
+  <button class="btn-menu" onclick="voltarMenu()">☰ MENU</button>
+</header>
+
+<main>
+
+  <div class="topo">
+    <h2>Controle Financeiro</h2>
+    <div id="identificacao">Carregando família...</div>
+  </div>
+
+  <div class="resumo">
+
+    <div class="card">
+      <small>Receitas pagas</small>
+      <div class="valor verde" id="totalReceitas">R$ 0,00</div>
+    </div>
+
+    <div class="card">
+      <small>Despesas pagas</small>
+      <div class="valor vermelho" id="totalDespesas">R$ 0,00</div>
+    </div>
+
+    <div class="card">
+      <small>Saldo do mês</small>
+      <div class="valor" id="saldoMes">R$ 0,00</div>
+    </div>
+
+    <div class="card">
+      <small>Despesas pendentes</small>
+      <div class="valor laranja" id="totalPendentes">R$ 0,00</div>
+    </div>
+
+  </div>
+
+  <section class="formulario">
+
+    <h3 id="tituloFormulario">➕ Novo lançamento</h3>
+
+    <form id="formLancamento">
+
+      <div class="campos">
+
+        <div class="campo">
+          <label>Tipo</label>
+          <select id="tipo" required>
+            <option value="DESPESA">Despesa</option>
+            <option value="RECEITA">Receita</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label>Descrição</label>
+          <input id="descricao"
+            placeholder="Ex.: Conta de luz"
+            maxlength="120"
+            required>
+        </div>
+
+        <div class="campo">
+          <label>Categoria</label>
+          <select id="categoria" required>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Moradia">Moradia</option>
+            <option value="Água">Água</option>
+            <option value="Energia">Energia</option>
+            <option value="Internet">Internet</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Educação">Educação</option>
+            <option value="Lazer">Lazer</option>
+            <option value="Salário">Salário</option>
+            <option value="Renda extra">Renda extra</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label>Valor (R$)</label>
+          <input id="valor"
+            type="number"
+            min="0.01"
+            step="0.01"
+            placeholder="0,00"
+            required>
+        </div>
+
+        <div class="campo">
+          <label>Data</label>
+          <input id="data" type="date" required>
+        </div>
+
+        <div class="campo">
+          <label>Situação</label>
+          <select id="status" required>
+            <option value="PENDENTE">Pendente</option>
+            <option value="PAGO">Pago</option>
+          </select>
+        </div>
+
+      </div>
+
+      <button class="btn-salvar" id="btnSalvar" type="submit">
+        SALVAR LANÇAMENTO
+      </button>
+
+      <button class="btn-cancelar" id="btnCancelarEdicao"
+        type="button" onclick="cancelarEdicao()" hidden>
+        CANCELAR EDIÇÃO
+      </button>
+
+      <div id="mensagem"></div>
+
+    </form>
+
+  </section>
+
+
+  <section class="recorrentes">
+    <h3>🔁 Despesas recorrentes</h3>
+    <p class="detalhes">Cadastre contas que se repetem todo mês. Ao abrir o financeiro, o sistema cria automaticamente a despesa pendente do mês atual, sem duplicar lançamentos.</p>
+
+    <form id="formRecorrente">
+      <div class="campos">
+        <div class="campo">
+          <label>Descrição</label>
+          <input id="recDescricao" maxlength="120" placeholder="Ex.: Aluguel" required>
+        </div>
+        <div class="campo">
+          <label>Categoria</label>
+          <select id="recCategoria" required>
+            <option value="Moradia">Moradia</option>
+            <option value="Água">Água</option>
+            <option value="Energia">Energia</option>
+            <option value="Internet">Internet</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Educação">Educação</option>
+            <option value="Lazer">Lazer</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Valor (R$)</label>
+          <input id="recValor" type="number" min="0.01" step="0.01" placeholder="0,00" required>
+        </div>
+        <div class="campo">
+          <label>Dia do vencimento</label>
+          <input id="recDia" type="number" min="1" max="31" value="10" required>
+        </div>
+      </div>
+      <button class="btn-recorrente" id="btnSalvarRecorrente" type="submit">SALVAR DESPESA RECORRENTE</button>
+      <div id="mensagemRecorrente"></div>
+    </form>
+
+    <h4>Contas cadastradas</h4>
+    <div id="listaRecorrentes"><div class="vazio">Carregando despesas recorrentes...</div></div>
+  </section>
+
+  <section class="historico">
+
+    <h3>📋 Lançamentos</h3>
+
+    <div class="filtros">
+      <div class="campo">
+        <label>Filtrar por mês</label>
+        <input type="month" id="filtroMes">
+      </div>
+    </div>
+
+    <div id="listaLancamentos">
+      <div class="vazio">Carregando lançamentos...</div>
+    </div>
+
+  </section>
+
+</main>
+
+<div class="rodape">
+  Controle Familiar © 2026
+</div>
+
+<script>
+
+let usuarioAtual = null;
+let familiaId = null;
+let lancamentos = [];
+let lancamentoEditandoId = null;
+
+const form = document.getElementById("formLancamento");
+const btnSalvar = document.getElementById("btnSalvar");
+const mensagem = document.getElementById("mensagem");
+
+function dataLocal() {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+
+  return `${ano}-${mes}-${dia}`;
+}
+
+function mesAtual() {
+  return dataLocal().substring(0, 7);
+}
+
+function dinheiro(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", {
+    style:"currency",
+    currency:"BRL"
+  });
+}
+
+function escapar(texto) {
+  return String(texto ?? "").replace(/[&<>"']/g, function(c) {
+    return {
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[c];
+  });
+}
+
+function mostrarMensagem(texto, cor) {
+  mensagem.style.color = cor;
+  mensagem.textContent = texto;
+}
+
+function referenciaFinanceiro() {
+  return db.collection("familias")
+    .doc(familiaId)
+    .collection("financeiro");
+}
+
+function referenciaRecorrentes() {
+  return db.collection("familias")
+    .doc(familiaId)
+    .collection("financeiro_recorrentes");
+}
+
+function mostrarMensagemRecorrente(texto, cor) {
+  const el = document.getElementById("mensagemRecorrente");
+  el.style.color = cor;
+  el.textContent = texto;
+}
+
+function dataVencimentoMes(competencia, dia) {
+  const partes = competencia.split("-").map(Number);
+  const ano = partes[0];
+  const mes = partes[1];
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const diaFinal = Math.min(Math.max(Number(dia) || 1, 1), ultimoDia);
+  return `${ano}-${String(mes).padStart(2, "0")}-${String(diaFinal).padStart(2, "0")}`;
+}
+
+// Gera no máximo um lançamento por despesa recorrente e competência.
+async function gerarLancamentosRecorrentes(competencia) {
+  const snapshot = await referenciaRecorrentes()
+    .where("ativo", "==", true)
+    .get();
+
+  for (const docRec of snapshot.docs) {
+    const rec = docRec.data();
+    const idLancamento = `rec_${docRec.id}_${competencia}`;
+    const lancamentoRef = referenciaFinanceiro().doc(idLancamento);
+    const existente = await lancamentoRef.get();
+
+    if (existente.exists) continue;
+
+    const dados = {
+      tipo: "DESPESA",
+      descricao: rec.descricao || "Despesa recorrente",
+      categoria: rec.categoria || "Outros",
+      valor: Number(rec.valor || 0),
+      data: dataVencimentoMes(competencia, rec.diaVencimento),
+      status: "PENDENTE",
+      origem: "RECORRENTE",
+      recorrenteId: docRec.id,
+      competencia: competencia,
+      criadoPor: usuarioAtual.uid,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await lancamentoRef.set(dados);
+  }
+}
+
+async function carregarRecorrentes() {
+  const container = document.getElementById("listaRecorrentes");
+  const snapshot = await referenciaRecorrentes().orderBy("descricao").get();
+
+  if (snapshot.empty) {
+    container.innerHTML = '<div class="vazio">Nenhuma despesa recorrente cadastrada.</div>';
+    return;
+  }
+
+  container.innerHTML = snapshot.docs.map(doc => {
+    const item = doc.data();
+    const ativo = item.ativo === true;
+    return `
+      <div class="item-recorrente">
+        <div>
+          <strong>${escapar(item.descricao || "Sem descrição")}</strong>
+          <div class="detalhes">
+            ${escapar(item.categoria || "Outros")} • ${dinheiro(item.valor)} • Vence dia ${Number(item.diaVencimento || 1)}
+            • ${ativo ? "ATIVA" : "PAUSADA"}
+          </div>
+        </div>
+        <div class="acoes-recorrente">
+          <button class="${ativo ? "btn-pausar" : "btn-ativar"}"
+            onclick="alterarStatusRecorrente('${doc.id}', ${!ativo})">
+            ${ativo ? "PAUSAR" : "ATIVAR"}
+          </button>
+          <button class="btn-excluir-rec"
+            onclick="excluirRecorrente('${doc.id}')">EXCLUIR</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function alterarStatusRecorrente(id, ativo) {
+  try {
+    await referenciaRecorrentes().doc(id).update({
+      ativo: ativo,
+      atualizadoPor: usuarioAtual.uid,
+      atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await carregarRecorrentes();
+    if (ativo) {
+      await gerarLancamentosRecorrentes(mesAtual());
+      await carregarLancamentos();
+    }
+  } catch (erro) {
+    console.error("Erro ao alterar recorrente:", erro);
+    alert("Não foi possível atualizar a despesa recorrente.");
+  }
+}
+
+async function excluirRecorrente(id) {
+  if (!confirm("Excluir esta regra de recorrência? Os lançamentos já gerados serão mantidos.")) return;
+  try {
+    await referenciaRecorrentes().doc(id).delete();
+    await carregarRecorrentes();
+  } catch (erro) {
+    console.error("Erro ao excluir recorrente:", erro);
+    alert("Não foi possível excluir a despesa recorrente.");
+  }
+}
+
+// Cadastro de despesa recorrente
+document.getElementById("formRecorrente").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  if (!familiaId || !usuarioAtual) return;
+
+  const descricao = document.getElementById("recDescricao").value.trim();
+  const categoria = document.getElementById("recCategoria").value;
+  const valor = Number(document.getElementById("recValor").value);
+  const diaVencimento = Number(document.getElementById("recDia").value);
+
+  if (!descricao || !Number.isFinite(valor) || valor <= 0 ||
+      !Number.isInteger(diaVencimento) || diaVencimento < 1 || diaVencimento > 31) {
+    mostrarMensagemRecorrente("Confira a descrição, o valor e o dia do vencimento.", "#c62828");
+    return;
+  }
+
+  const botao = document.getElementById("btnSalvarRecorrente");
+  botao.disabled = true;
+  botao.textContent = "SALVANDO...";
+
+  try {
+    await referenciaRecorrentes().add({
+      tipo: "DESPESA",
+      descricao,
+      categoria,
+      valor,
+      diaVencimento,
+      ativo: true,
+      criadoPor: usuarioAtual.uid,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById("formRecorrente").reset();
+    document.getElementById("recDia").value = 10;
+
+    await gerarLancamentosRecorrentes(mesAtual());
+    await carregarRecorrentes();
+    await carregarLancamentos();
+    mostrarMensagemRecorrente("Despesa recorrente cadastrada! O lançamento deste mês foi criado como pendente.", "#176b35");
+  } catch (erro) {
+    console.error("Erro ao salvar recorrente:", erro);
+    mostrarMensagemRecorrente("Não foi possível salvar. Confira as regras do Firestore. " + erro.message, "#c62828");
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "SALVAR DESPESA RECORRENTE";
+  }
+});
+
+// AUTENTICAÇÃO E CARREGAMENTO DA FAMÍLIA
+auth.onAuthStateChanged(async function(user) {
+
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  try {
+
+    usuarioAtual = user;
+
+    const perfil = await db.collection("usuarios")
+      .doc(user.uid).get();
+
+    if (!perfil.exists || !perfil.data().familiaId) {
+      await auth.signOut();
+      window.location.href = "login.html";
+      return;
+    }
+
+    familiaId = perfil.data().familiaId;
+
+    const familiaRef = db.collection("familias").doc(familiaId);
+
+    const familia = await familiaRef.get();
+
+    const membro = await familiaRef
+      .collection("membros")
+      .doc(user.uid).get();
+
+    if (
+      !familia.exists ||
+      familia.data().status !== "ATIVA" ||
+      !membro.exists ||
+      membro.data().ativo !== true
+    ) {
+      await auth.signOut();
+      window.location.href = "login.html";
+      return;
+    }
+
+    document.getElementById("identificacao").textContent =
+      "Família: " + familia.data().nome;
+
+    document.getElementById("data").value = dataLocal();
+    document.getElementById("filtroMes").value = mesAtual();
+
+    await gerarLancamentosRecorrentes(mesAtual());
+    await carregarRecorrentes();
+    await carregarLancamentos();
+
+  } catch(erro) {
+
+    console.error("Erro ao carregar financeiro:", erro);
+
+    document.getElementById("listaLancamentos").innerHTML =
+      '<div class="vazio">Não foi possível carregar os dados. Verifique as permissões do Firestore.</div>';
+
+  }
+
+});
+
+// SALVAR LANÇAMENTO
+form.addEventListener("submit", async function(e) {
+
+  e.preventDefault();
+
+  if (!familiaId || !usuarioAtual) return;
+
+  const tipo = document.getElementById("tipo").value;
+  const descricao = document.getElementById("descricao").value.trim();
+  const categoria = document.getElementById("categoria").value;
+  const valor = Number(document.getElementById("valor").value);
+  const data = document.getElementById("data").value;
+  const status = document.getElementById("status").value;
+
+  if (!descricao || !data || !Number.isFinite(valor) || valor <= 0) {
+    mostrarMensagem("Confira os dados do lançamento.", "#c62828");
+    return;
+  }
+
+  btnSalvar.disabled = true;
+  btnSalvar.textContent = "SALVANDO...";
+  mostrarMensagem("", "");
+
+  try {
+
+    const dados = {
+      tipo: tipo,
+      descricao: descricao,
+      categoria: categoria,
+      valor: valor,
+      data: data,
+      status: status,
+      atualizadoPor: usuarioAtual.uid,
+      atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (lancamentoEditandoId) {
+      await referenciaFinanceiro().doc(lancamentoEditandoId).update(dados);
+      mostrarMensagem("Lançamento atualizado com sucesso!", "#176b35");
+    } else {
+      dados.criadoPor = usuarioAtual.uid;
+      dados.criadoEm = firebase.firestore.FieldValue.serverTimestamp();
+      await referenciaFinanceiro().add(dados);
+      mostrarMensagem("Lançamento salvo com sucesso!", "#176b35");
+    }
+
+    limparFormulario();
+    await carregarLancamentos();
+
+  } catch(erro) {
+
+    console.error("Erro ao salvar:", erro);
+
+    mostrarMensagem(
+      "Não foi possível salvar. Verifique as regras do Firestore. " + erro.message,
+      "#c62828"
+    );
+
+  } finally {
+
+    btnSalvar.disabled = false;
+    btnSalvar.textContent = lancamentoEditandoId
+      ? "ATUALIZAR LANÇAMENTO"
+      : "SALVAR LANÇAMENTO";
+
+  }
+
+});
+
+// CARREGAR LANÇAMENTOS
+async function carregarLancamentos() {
+
+  if (!familiaId) return;
+
+  const resultado = await referenciaFinanceiro().get();
+
+  lancamentos = [];
+
+  resultado.forEach(doc => {
+    lancamentos.push({
+      id: doc.id,
+      ...doc.data()
+    });
+  });
+
+  lancamentos.sort((a, b) => {
+    return String(b.data || "").localeCompare(String(a.data || ""));
+  });
+
+  atualizarTela();
+}
+
+// ATUALIZAR RESUMO E LISTA
+function atualizarTela() {
+
+  const mes = document.getElementById("filtroMes").value;
+
+  const filtrados = lancamentos.filter(item => {
+    return String(item.data || "").startsWith(mes);
+  });
+
+  let receitas = 0;
+  let despesas = 0;
+  let pendentes = 0;
+
+  filtrados.forEach(item => {
+
+    const valor = Number(item.valor || 0);
+
+    if (item.tipo === "RECEITA" && item.status === "PAGO") {
+      receitas += valor;
+    }
+
+    if (item.tipo === "DESPESA" && item.status === "PAGO") {
+      despesas += valor;
+    }
+
+    if (item.tipo === "DESPESA" && item.status === "PENDENTE") {
+      pendentes += valor;
+    }
+
+  });
+
+  const saldo = receitas - despesas;
+
+  document.getElementById("totalReceitas").textContent =
+    dinheiro(receitas);
+
+  document.getElementById("totalDespesas").textContent =
+    dinheiro(despesas);
+
+  document.getElementById("saldoMes").textContent =
+    dinheiro(saldo);
+
+  document.getElementById("saldoMes").className =
+    "valor " + (saldo >= 0 ? "verde" : "vermelho");
+
+  document.getElementById("totalPendentes").textContent =
+    dinheiro(pendentes);
+
+  renderizarLista(filtrados);
+
+}
+
+// EXIBIR LISTA
+function renderizarLista(lista) {
+
+  const container = document.getElementById("listaLancamentos");
+
+  if (!lista.length) {
+    container.innerHTML =
+      '<div class="vazio">Nenhum lançamento neste mês.</div>';
+    return;
+  }
+
+  container.innerHTML = lista.map(item => {
+
+    const receita = item.tipo === "RECEITA";
+
+    const cor = receita ? "verde" : "vermelho";
+    const sinal = receita ? "+" : "-";
+
+    const situacao = item.status === "PAGO" ? "pago" : "pendente";
+
+    const dataFormatada = item.data
+      ? item.data.split("-").reverse().join("/")
+      : "";
+
+    return `
+      <div class="lancamento">
+
+        <div>
+          <strong>${escapar(item.descricao)}</strong>
+
+          <div class="detalhes">
+            ${escapar(item.categoria)} • ${dataFormatada}
+          </div>
+
+          <span class="status ${situacao}">
+            ${escapar(item.status)}
+          </span>
+        </div>
+
+        <div class="direita">
+
+          <strong class="${cor}">
+            ${sinal} ${dinheiro(item.valor)}
+          </strong>
+
+          <br>
+
+          <button
+            class="btn-acao btn-editar"
+            onclick="editarLancamento('${item.id}')">
+            EDITAR
+          </button>
+
+          ${item.status === "PENDENTE" ? `
+            <button
+              class="btn-acao btn-baixa"
+              onclick="darBaixa('${item.id}')">
+              DAR BAIXA
+            </button>
+          ` : ""}
+
+          <button
+            class="excluir"
+            onclick="excluirLancamento('${item.id}')">
+            EXCLUIR
+          </button>
+
+        </div>
+
+      </div>
+    `;
+
+  }).join("");
+
+}
+
+// PREPARAR EDIÇÃO DE LANÇAMENTO
+function editarLancamento(id) {
+  const item = lancamentos.find(l => l.id === id);
+
+  if (!item) {
+    alert("Lançamento não encontrado.");
+    return;
+  }
+
+  lancamentoEditandoId = id;
+  document.getElementById("tipo").value = item.tipo || "DESPESA";
+  document.getElementById("descricao").value = item.descricao || "";
+
+  const categoriaSelect = document.getElementById("categoria");
+  const categoria = item.categoria || "Outros";
+  if (![...categoriaSelect.options].some(op => op.value === categoria)) {
+    categoriaSelect.add(new Option(categoria, categoria));
+  }
+  categoriaSelect.value = categoria;
+
+  document.getElementById("valor").value = Number(item.valor || 0).toFixed(2);
+  document.getElementById("data").value = item.data || dataLocal();
+  document.getElementById("status").value = item.status || "PENDENTE";
+
+  document.getElementById("tituloFormulario").textContent = "✏️ Editar lançamento";
+  btnSalvar.textContent = "ATUALIZAR LANÇAMENTO";
+  document.getElementById("btnCancelarEdicao").hidden = false;
+  mostrarMensagem("Altere os campos e clique em ATUALIZAR LANÇAMENTO.", "#2457a6");
+
+  document.querySelector(".formulario").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function cancelarEdicao() {
+  limparFormulario();
+  mostrarMensagem("Edição cancelada.", "#777");
+}
+
+function limparFormulario() {
+  lancamentoEditandoId = null;
+  form.reset();
+  document.getElementById("data").value = dataLocal();
+  document.getElementById("tipo").value = "DESPESA";
+  document.getElementById("status").value = "PENDENTE";
+  document.getElementById("tituloFormulario").textContent = "➕ Novo lançamento";
+  btnSalvar.textContent = "SALVAR LANÇAMENTO";
+  document.getElementById("btnCancelarEdicao").hidden = true;
+}
+
+// DAR BAIXA EM LANÇAMENTO PENDENTE
+async function darBaixa(id) {
+  const item = lancamentos.find(l => l.id === id);
+  if (!item || item.status !== "PENDENTE") return;
+
+  if (!confirm('Confirmar pagamento de "' + (item.descricao || "lançamento") + '"?')) {
+    return;
+  }
+
+  try {
+    await referenciaFinanceiro().doc(id).update({
+      status: "PAGO",
+      atualizadoPor: usuarioAtual.uid,
+      atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await carregarLancamentos();
+  } catch (erro) {
+    console.error("Erro ao dar baixa:", erro);
+    alert("Não foi possível dar baixa. Verifique as permissões do Firestore.");
+  }
+}
+
+// EXCLUIR
+async function excluirLancamento(id) {
+
+  if (!confirm("Deseja realmente excluir este lançamento?")) {
+    return;
+  }
+
+  try {
+
+    await referenciaFinanceiro().doc(id).delete();
+
+    await carregarLancamentos();
+
+  } catch(erro) {
+
+    console.error(erro);
+
+    alert("Não foi possível excluir o lançamento.");
+
+  }
+
+}
+
+// FILTRO MENSAL
+document.getElementById("filtroMes")
+  .addEventListener("change", atualizarTela);
+
+// VOLTAR AO MENU
+function voltarMenu() {
+  window.location.href = "dashboard.html";
+}
+
+// SAIR
+async function sair() {
+  await auth.signOut();
+  window.location.href = "login.html";
+}
+
+</script>
+
+</body>
+</html>

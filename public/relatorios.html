@@ -1,0 +1,1034 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatórios Financeiros</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+:root {
+    --preto: #121111;
+    --verde: #65c466;
+    --fundo: #f2f4f3;
+    --texto: #292929;
+    --cinza: #777;
+    --vermelho: #dc5252;
+    --azul: #4389d8;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--texto);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+header {
+    background: var(--preto);
+    color: white;
+    padding: 17px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 21px;
+}
+
+header h1 span {
+    color: var(--verde);
+}
+
+.btn-menu {
+    border: 1px solid #555;
+    background: #252525;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+.familia {
+    color: #555;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.filtros {
+    background: white;
+    padding: 17px;
+    border-radius: 10px;
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px #0000000b;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 160px;
+}
+
+.campo label {
+    font-weight: bold;
+    font-size: 13px;
+}
+
+select {
+    padding: 11px;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+    background: white;
+    font-size: 14px;
+}
+
+button {
+    font-family: inherit;
+}
+
+.btn {
+    padding: 11px 15px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.btn-verde {
+    background: var(--verde);
+    color: #102810;
+}
+
+.btn-azul {
+    background: var(--azul);
+    color: white;
+}
+
+.btn-preto {
+    background: var(--preto);
+    color: white;
+}
+
+.acoes {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.secao-titulo {
+    font-size: 18px;
+    margin: 25px 0 13px;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 13px;
+}
+
+.card {
+    background: white;
+    padding: 18px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px #0000000b;
+    min-width: 0;
+}
+
+.card .titulo {
+    color: var(--cinza);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.card .valor {
+    font-size: 22px;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.receita {
+    color: #239447;
+}
+
+.despesa {
+    color: var(--vermelho);
+}
+
+.saldo {
+    color: #2678c9;
+}
+
+.pendente {
+    color: #d18b21;
+}
+
+.painel {
+    background: white;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px #0000000b;
+}
+
+.mes-linha {
+    display: grid;
+    grid-template-columns: 75px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin: 13px 0;
+}
+
+.mes-nome {
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+.barras {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.barra {
+    height: 13px;
+    border-radius: 4px;
+    min-width: 0;
+}
+
+.barra-receita {
+    background: #49b66b;
+}
+
+.barra-despesa {
+    background: #e16a6a;
+}
+
+.legenda {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.legenda span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bolinha {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.categoria-item {
+    margin: 15px 0;
+}
+
+.categoria-topo {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.categoria-fundo {
+    height: 12px;
+    background: #e9ecea;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.categoria-preenchimento {
+    height: 100%;
+    background: #65c466;
+    border-radius: 10px;
+}
+
+.tabela-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 650px;
+}
+
+th {
+    background: #f0f2f0;
+    text-align: left;
+    padding: 12px 9px;
+}
+
+td {
+    padding: 12px 9px;
+    border-bottom: 1px solid #eee;
+}
+
+td.numero, th.numero {
+    text-align: right;
+}
+
+.total {
+    font-weight: bold;
+    background: #f7f8f7;
+}
+
+.status {
+    font-weight: bold;
+}
+
+.status-pago {
+    color: #239447;
+}
+
+.status-pendente {
+    color: #d18b21;
+}
+
+.vazio {
+    color: #888;
+    text-align: center;
+    padding: 25px;
+}
+
+#mensagem {
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: none;
+}
+
+#carregando {
+    text-align: center;
+    padding: 35px;
+    color: #666;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #888;
+    font-size: 12px;
+}
+
+@media (max-width: 850px) {
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .container {
+        padding: 12px;
+    }
+
+    header {
+        padding: 15px;
+    }
+
+    header h1 {
+        font-size: 18px;
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 9px;
+    }
+
+    .card {
+        padding: 13px;
+    }
+
+    .card .valor {
+        font-size: 18px;
+    }
+
+    .filtros {
+        padding: 13px;
+    }
+
+    .campo {
+        width: 100%;
+    }
+
+    .campo select {
+        width: 100%;
+    }
+
+    .acoes .btn {
+        flex: 1;
+    }
+
+    .mes-linha {
+        grid-template-columns: 55px 1fr;
+    }
+}
+
+@media print {
+    body {
+        background: white;
+    }
+
+    header {
+        background: white !important;
+        color: black !important;
+        border-bottom: 2px solid #222;
+    }
+
+    header h1 span {
+        color: #267c35 !important;
+    }
+
+    .btn-menu,
+    .filtros,
+    .acoes,
+    footer {
+        display: none !important;
+    }
+
+    .container {
+        max-width: none;
+        padding: 8px;
+    }
+
+    .card,
+    .painel {
+        box-shadow: none;
+        border: 1px solid #ddd;
+        break-inside: avoid;
+    }
+
+    .secao-titulo {
+        break-after: avoid;
+    }
+
+    table {
+        font-size: 11px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>📊 <span>Relatórios</span> Financeiros</h1>
+    <button class="btn-menu" onclick="voltarMenu()">☰ MENU</button>
+</header>
+
+<div class="container">
+
+    <div class="familia" id="nomeFamilia">Família: carregando...</div>
+
+    <div id="mensagem"></div>
+    <div id="carregando">Carregando relatórios...</div>
+
+    <div id="conteudo" style="display:none">
+
+        <div class="filtros">
+            <div class="campo">
+                <label for="filtroMes">Mês do relatório</label>
+                <select id="filtroMes" onchange="atualizarRelatorio()"></select>
+            </div>
+
+            <div class="campo">
+                <label for="filtroAno">Ano do comparativo</label>
+                <select id="filtroAno" onchange="atualizarRelatorio()"></select>
+            </div>
+
+            <div class="acoes">
+                <button class="btn btn-verde" onclick="imprimirRelatorio()">🖨️ Imprimir / PDF</button>
+                <button class="btn btn-azul" onclick="exportarCSV()">📥 Exportar Excel</button>
+            </div>
+        </div>
+
+        <h2 class="secao-titulo">Resumo do mês</h2>
+
+        <div class="cards">
+            <div class="card">
+                <div class="titulo">Receitas pagas</div>
+                <div class="valor receita" id="totalReceitas">R$ 0,00</div>
+            </div>
+
+            <div class="card">
+                <div class="titulo">Despesas pagas</div>
+                <div class="valor despesa" id="totalDespesas">R$ 0,00</div>
+            </div>
+
+            <div class="card">
+                <div class="titulo">Saldo do mês</div>
+                <div class="valor saldo" id="saldoMes">R$ 0,00</div>
+            </div>
+
+            <div class="card">
+                <div class="titulo">Despesas pendentes</div>
+                <div class="valor pendente" id="totalPendentes">R$ 0,00</div>
+            </div>
+        </div>
+
+        <h2 class="secao-titulo">Comparativo anual</h2>
+
+        <div class="painel">
+            <div class="legenda">
+                <span><i class="bolinha barra-receita"></i> Receitas pagas</span>
+                <span><i class="bolinha barra-despesa"></i> Despesas pagas</span>
+            </div>
+
+            <div id="comparativoAno"></div>
+        </div>
+
+        <h2 class="secao-titulo">Despesas por categoria</h2>
+
+        <div class="painel">
+            <div id="categorias"></div>
+        </div>
+
+        <h2 class="secao-titulo">Detalhamento por categoria</h2>
+
+        <div class="painel">
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th class="numero">Receitas pagas</th>
+                            <th class="numero">Despesas pagas</th>
+                            <th class="numero">Despesas pendentes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaCategorias"></tbody>
+                    <tfoot id="rodapeTabela"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <h2 class="secao-titulo">Lançamentos do mês</h2>
+
+        <div class="painel">
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Tipo</th>
+                            <th class="numero">Valor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaLancamentos"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<footer>Controle Financeiro Familiar</footer>
+
+<script>
+let db;
+let auth;
+let familiaId = null;
+let lancamentos = [];
+
+const nomesMeses = [
+    "Janeiro", "Fevereiro", "Março", "Abril",
+    "Maio", "Junho", "Julho", "Agosto",
+    "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
+function dinheiro(valor) {
+    return Number(valor || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+}
+
+function escapar(texto) {
+    return String(texto ?? "").replace(/[&<>"']/g, function(c) {
+        return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[c];
+    });
+}
+
+function mostrarMensagem(texto) {
+    const el = document.getElementById("mensagem");
+    el.textContent = texto;
+    el.style.display = "block";
+}
+
+function voltarMenu() {
+    window.location.href = "dashboard.html";
+}
+
+function preencherFiltros() {
+    const hoje = new Date();
+    const mesAtual = hoje.getFullYear() + "-" +
+        String(hoje.getMonth() + 1).padStart(2, "0");
+
+    const selectMes = document.getElementById("filtroMes");
+
+    for (let ano = hoje.getFullYear() - 5; ano <= hoje.getFullYear() + 1; ano++) {
+        for (let mes = 0; mes < 12; mes++) {
+            const valor = ano + "-" + String(mes + 1).padStart(2, "0");
+            const opcao = document.createElement("option");
+            opcao.value = valor;
+            opcao.textContent = nomesMeses[mes] + " / " + ano;
+            selectMes.appendChild(opcao);
+        }
+    }
+
+    selectMes.value = mesAtual;
+
+    const selectAno = document.getElementById("filtroAno");
+
+    for (let ano = hoje.getFullYear() - 5; ano <= hoje.getFullYear() + 1; ano++) {
+        const opcao = document.createElement("option");
+        opcao.value = ano;
+        opcao.textContent = ano;
+        selectAno.appendChild(opcao);
+    }
+
+    selectAno.value = hoje.getFullYear();
+}
+
+function lancamentosDoMes() {
+    const mes = document.getElementById("filtroMes").value;
+
+    return lancamentos.filter(item =>
+        String(item.data || "").startsWith(mes)
+    );
+}
+
+function lancamentosDoAno() {
+    const ano = String(document.getElementById("filtroAno").value);
+
+    return lancamentos.filter(item =>
+        String(item.data || "").startsWith(ano + "-")
+    );
+}
+
+function somar(lista, tipo, status) {
+    return lista
+        .filter(item =>
+            item.tipo === tipo &&
+            item.status === status
+        )
+        .reduce((total, item) => total + Number(item.valor || 0), 0);
+}
+
+function atualizarRelatorio() {
+    atualizarResumoMes();
+    atualizarComparativoAno();
+    atualizarCategorias();
+    atualizarTabela();
+    atualizarTabelaLancamentos();
+}
+
+function atualizarResumoMes() {
+    const lista = lancamentosDoMes();
+
+    const receitas = somar(lista, "RECEITA", "PAGO");
+    const despesas = somar(lista, "DESPESA", "PAGO");
+    const pendentes = somar(lista, "DESPESA", "PENDENTE");
+
+    document.getElementById("totalReceitas").textContent = dinheiro(receitas);
+    document.getElementById("totalDespesas").textContent = dinheiro(despesas);
+    document.getElementById("saldoMes").textContent = dinheiro(receitas - despesas);
+    document.getElementById("totalPendentes").textContent = dinheiro(pendentes);
+
+    const saldoEl = document.getElementById("saldoMes");
+    saldoEl.style.color = receitas - despesas < 0 ? "#dc5252" : "#2678c9";
+}
+
+function atualizarComparativoAno() {
+    const lista = lancamentosDoAno();
+    const dados = [];
+
+    for (let mes = 1; mes <= 12; mes++) {
+        const chave = String(mes).padStart(2, "0");
+        const registros = lista.filter(item =>
+            String(item.data || "").startsWith(
+                document.getElementById("filtroAno").value + "-" + chave
+            )
+        );
+
+        dados.push({
+            nome: nomesMeses[mes - 1],
+            receita: somar(registros, "RECEITA", "PAGO"),
+            despesa: somar(registros, "DESPESA", "PAGO")
+        });
+    }
+
+    const maior = Math.max(
+        1,
+        ...dados.flatMap(item => [item.receita, item.despesa])
+    );
+
+    const container = document.getElementById("comparativoAno");
+
+    container.innerHTML = dados.map(item => {
+        const larguraReceita = item.receita / maior * 100;
+        const larguraDespesa = item.despesa / maior * 100;
+
+        return `
+            <div class="mes-linha">
+                <div class="mes-nome">${item.nome.substring(0, 3)}</div>
+                <div class="barras">
+                    <div class="barra barra-receita"
+                         style="width:${larguraReceita}%"
+                         title="Receitas: ${dinheiro(item.receita)}"></div>
+                    <div class="barra barra-despesa"
+                         style="width:${larguraDespesa}%"
+                         title="Despesas: ${dinheiro(item.despesa)}"></div>
+                    <div style="font-size:11px;color:#777">
+                        Receita: ${dinheiro(item.receita)}
+                        &nbsp;|&nbsp;
+                        Despesa: ${dinheiro(item.despesa)}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function atualizarCategorias() {
+    const lista = lancamentosDoMes();
+
+    const totais = {};
+
+    lista.forEach(item => {
+        if (item.tipo !== "DESPESA" || item.status !== "PAGO") return;
+
+        const categoria = item.categoria || "Sem categoria";
+
+        totais[categoria] = (totais[categoria] || 0) +
+            Number(item.valor || 0);
+    });
+
+    const categorias = Object.entries(totais)
+        .sort((a, b) => b[1] - a[1]);
+
+    const maior = Math.max(1, ...categorias.map(item => item[1]));
+    const container = document.getElementById("categorias");
+
+    if (!categorias.length) {
+        container.innerHTML = '<div class="vazio">Nenhuma despesa paga neste mês.</div>';
+        return;
+    }
+
+    container.innerHTML = categorias.map(([nome, valor]) => `
+        <div class="categoria-item">
+            <div class="categoria-topo">
+                <strong>${escapar(nome)}</strong>
+                <span>${dinheiro(valor)}</span>
+            </div>
+            <div class="categoria-fundo">
+                <div class="categoria-preenchimento"
+                     style="width:${valor / maior * 100}%"></div>
+            </div>
+        </div>
+    `).join("");
+}
+
+function atualizarTabela() {
+    const lista = lancamentosDoMes();
+    const totais = {};
+
+    lista.forEach(item => {
+        const categoria = item.categoria || "Sem categoria";
+
+        if (!totais[categoria]) {
+            totais[categoria] = {
+                receita: 0,
+                despesa: 0,
+                pendente: 0
+            };
+        }
+
+        const valor = Number(item.valor || 0);
+
+        if (item.tipo === "RECEITA" && item.status === "PAGO") {
+            totais[categoria].receita += valor;
+        }
+
+        if (item.tipo === "DESPESA" && item.status === "PAGO") {
+            totais[categoria].despesa += valor;
+        }
+
+        if (item.tipo === "DESPESA" && item.status === "PENDENTE") {
+            totais[categoria].pendente += valor;
+        }
+    });
+
+    const categorias = Object.entries(totais)
+        .sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+
+    const tbody = document.getElementById("tabelaCategorias");
+
+    if (!categorias.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="vazio">Nenhum lançamento neste mês.</td></tr>';
+    } else {
+        tbody.innerHTML = categorias.map(([nome, valores]) => `
+            <tr>
+                <td>${escapar(nome)}</td>
+                <td class="numero receita">${dinheiro(valores.receita)}</td>
+                <td class="numero despesa">${dinheiro(valores.despesa)}</td>
+                <td class="numero pendente">${dinheiro(valores.pendente)}</td>
+            </tr>
+        `).join("");
+    }
+
+    const totalReceita = categorias.reduce((s, item) => s + item[1].receita, 0);
+    const totalDespesa = categorias.reduce((s, item) => s + item[1].despesa, 0);
+    const totalPendente = categorias.reduce((s, item) => s + item[1].pendente, 0);
+
+    document.getElementById("rodapeTabela").innerHTML = `
+        <tr class="total">
+            <td>TOTAL</td>
+            <td class="numero">${dinheiro(totalReceita)}</td>
+            <td class="numero">${dinheiro(totalDespesa)}</td>
+            <td class="numero">${dinheiro(totalPendente)}</td>
+        </tr>
+    `;
+}
+
+function atualizarTabelaLancamentos() {
+    const lista = lancamentosDoMes().slice().sort((a, b) =>
+        String(b.data || "").localeCompare(String(a.data || ""))
+    );
+
+    const tbody = document.getElementById("tabelaLancamentos");
+
+    if (!lista.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum lançamento neste mês.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = lista.map(item => {
+        const partes = String(item.data || "").split("-");
+        const dataFormatada = partes.length === 3
+            ? partes[2] + "/" + partes[1] + "/" + partes[0]
+            : item.data || "-";
+
+        const statusClass = item.status === "PAGO"
+            ? "status-pago"
+            : "status-pendente";
+
+        return `
+            <tr>
+                <td>${escapar(dataFormatada)}</td>
+                <td>${escapar(item.descricao || "-")}</td>
+                <td>${escapar(item.categoria || "Sem categoria")}</td>
+                <td>${escapar(item.tipo || "-")}</td>
+                <td class="numero">${dinheiro(item.valor)}</td>
+                <td class="status ${statusClass}">${escapar(item.status || "-")}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function imprimirRelatorio() {
+    window.print();
+}
+
+function exportarCSV() {
+    const lista = lancamentosDoMes();
+
+    if (!lista.length) {
+        alert("Não existem lançamentos para exportar neste mês.");
+        return;
+    }
+
+    function csv(valor) {
+        return '"' + String(valor ?? "").replace(/"/g, '""') + '"';
+    }
+
+    const linhas = [
+        ["Data", "Tipo", "Descrição", "Categoria", "Valor", "Status"]
+    ];
+
+    lista.forEach(item => {
+        linhas.push([
+            item.data || "",
+            item.tipo || "",
+            item.descricao || "",
+            item.categoria || "",
+            Number(item.valor || 0).toFixed(2).replace(".", ","),
+            item.status || ""
+        ]);
+    });
+
+    const conteudo = "\uFEFF" +
+        linhas.map(linha => linha.map(csv).join(";")).join("\r\n");
+
+    const arquivo = new Blob([conteudo], {
+        type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(arquivo);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "relatorio_financeiro_" +
+        document.getElementById("filtroMes").value + ".csv";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function carregarDados() {
+    try {
+        const snapshot = await db
+            .collection("familias")
+            .doc(familiaId)
+            .collection("financeiro")
+            .get();
+
+        lancamentos = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        document.getElementById("carregando").style.display = "none";
+        document.getElementById("conteudo").style.display = "block";
+
+        atualizarRelatorio();
+
+    } catch (erro) {
+        console.error("Erro ao carregar relatórios:", erro);
+        document.getElementById("carregando").style.display = "none";
+        mostrarMensagem("Não foi possível carregar os lançamentos. Verifique sua conexão e as regras do Firestore.");
+    }
+}
+
+async function validarAcesso(user) {
+    try {
+        const usuarioDoc = await db.collection("usuarios").doc(user.uid).get();
+
+        if (!usuarioDoc.exists) {
+            throw new Error("Usuário não encontrado.");
+        }
+
+        const usuario = usuarioDoc.data();
+        familiaId = usuario.familiaId;
+
+        if (!familiaId) {
+            throw new Error("Este usuário não está vinculado a uma família.");
+        }
+
+        const familiaDoc = await db
+            .collection("familias")
+            .doc(familiaId)
+            .get();
+
+        const membroDoc = await db
+            .collection("familias")
+            .doc(familiaId)
+            .collection("membros")
+            .doc(user.uid)
+            .get();
+
+        if (!familiaDoc.exists) {
+            throw new Error("Família não encontrada.");
+        }
+
+        if (familiaDoc.data().status !== "ATIVA") {
+            throw new Error("Esta família não está ativa.");
+        }
+
+        if (!membroDoc.exists || membroDoc.data().ativo !== true) {
+            throw new Error("Você não possui acesso ativo a esta família.");
+        }
+
+        document.getElementById("nomeFamilia").textContent =
+            "Família: " + (familiaDoc.data().nome || "Minha Família");
+
+        preencherFiltros();
+        await carregarDados();
+
+    } catch (erro) {
+        console.error("Erro de acesso:", erro);
+        alert(erro.message || "Não foi possível validar seu acesso.");
+        await auth.signOut();
+        window.location.href = "login.html";
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.CONFIG.FIREBASE);
+        }
+
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        auth.onAuthStateChanged(async function(user) {
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            await validarAcesso(user);
+        });
+
+    } catch (erro) {
+        console.error(erro);
+        document.getElementById("carregando").style.display = "none";
+        mostrarMensagem("Erro ao iniciar o Firebase. Confira os arquivos js/config.js e js/firebase.js.");
+    }
+});
+</script>
+
+</body>
+</html>

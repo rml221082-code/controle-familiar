@@ -1,0 +1,1165 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metas - Controle Familiar</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/firebase.js"></script>
+
+<style>
+* {box-sizing:border-box}
+
+body {
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f2f4f3;
+  color:#222;
+}
+
+header {
+  background:#121111;
+  color:white;
+  padding:18px 22px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+header h2 {
+  margin:0;
+  color:#65c466;
+}
+
+button {
+  border:0;
+  border-radius:8px;
+  padding:11px 15px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+button:disabled {
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.btn-voltar {
+  background:#444;
+  color:white;
+}
+
+.btn-sair {
+  background:#a83232;
+  color:white;
+}
+
+main {
+  max-width:1100px;
+  margin:auto;
+  padding:22px;
+}
+
+#conteudo {
+  display:none;
+}
+
+#carregando {
+  text-align:center;
+  padding:50px 20px;
+  color:#176b35;
+  font-weight:bold;
+}
+
+.topo {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.topo h2 {
+  margin:0;
+  color:#176b35;
+}
+
+.resumo {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:14px;
+  margin-bottom:22px;
+}
+
+.resumo-card {
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  border:1px solid #eee;
+}
+
+.resumo-card span {
+  color:#777;
+  font-size:13px;
+}
+
+.resumo-card strong {
+  display:block;
+  font-size:23px;
+  margin-top:8px;
+  color:#176b35;
+}
+
+.painel {
+  background:white;
+  border-radius:12px;
+  padding:22px;
+  margin-bottom:20px;
+  border:1px solid #eee;
+}
+
+.painel h3 {
+  margin-top:0;
+  color:#176b35;
+}
+
+.campo {
+  margin-bottom:14px;
+}
+
+.campo label {
+  display:block;
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+input, textarea, select {
+  width:100%;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-size:15px;
+  background:white;
+}
+
+textarea {
+  min-height:70px;
+  resize:vertical;
+}
+
+.linha {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+}
+
+.btn-principal {
+  background:#176b35;
+  color:white;
+  width:100%;
+}
+
+.btn-manual {
+  background:#176b35;
+  color:white;
+}
+
+.btn-financeiro {
+  background:#235a9f;
+  color:white;
+}
+
+.btn-secundario {
+  background:#eee;
+  color:#333;
+}
+
+.btn-excluir {
+  background:#a83232;
+  color:white;
+}
+
+.lista {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
+  gap:15px;
+}
+
+.meta-card {
+  background:white;
+  border:1px solid #e5e5e5;
+  border-radius:12px;
+  padding:18px;
+}
+
+.meta-card h3 {
+  color:#176b35;
+  margin:0 0 8px;
+  overflow-wrap:anywhere;
+}
+
+.meta-descricao {
+  color:#777;
+  font-size:13px;
+  min-height:18px;
+}
+
+.meta-valor {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin:16px 0 8px;
+  font-size:13px;
+  flex-wrap:wrap;
+}
+
+.barra {
+  height:12px;
+  background:#e8ece9;
+  border-radius:20px;
+  overflow:hidden;
+}
+
+.barra-progresso {
+  height:100%;
+  background:#35a853;
+  border-radius:20px;
+  transition:width .3s;
+}
+
+.percentual {
+  font-size:22px;
+  font-weight:bold;
+  color:#176b35;
+  margin-top:10px;
+}
+
+.meta-info {
+  font-size:12px;
+  color:#777;
+  margin-top:10px;
+  line-height:1.6;
+}
+
+.acoes {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:15px;
+}
+
+.acoes button {
+  font-size:12px;
+  padding:10px 6px;
+}
+
+.status {
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:bold;
+  background:#e8f5e9;
+  color:#176b35;
+  margin-bottom:10px;
+}
+
+.status.concluida {
+  background:#e3e8f4;
+  color:#235a9f;
+}
+
+.vazio {
+  background:white;
+  padding:25px;
+  text-align:center;
+  border-radius:12px;
+  color:#777;
+}
+
+#mensagem {
+  margin:12px 0;
+  font-size:14px;
+  line-height:1.5;
+}
+
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#0009;
+  z-index:10;
+  padding:15px;
+  align-items:center;
+  justify-content:center;
+}
+
+.modal-conteudo {
+  background:white;
+  padding:22px;
+  border-radius:12px;
+  width:100%;
+  max-width:430px;
+  max-height:90vh;
+  overflow:auto;
+}
+
+.modal-conteudo h3 {
+  color:#176b35;
+  margin-top:0;
+}
+
+.modal-acoes {
+  display:flex;
+  gap:8px;
+  margin-top:15px;
+}
+
+.modal-acoes button {
+  flex:1;
+}
+
+.rodape {
+  text-align:center;
+  color:#888;
+  padding:25px;
+  font-size:12px;
+}
+
+@media(max-width:480px) {
+  main {padding:14px}
+  .painel {padding:16px}
+  .acoes {grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div id="carregando">Verificando seu acesso...</div>
+
+<div id="conteudo">
+
+<header>
+  <h2>🎯 Metas Familiares</h2>
+
+  <div style="display:flex;gap:8px">
+    <button class="btn-voltar"
+      onclick="location.href='dashboard.html'">
+      VOLTAR
+    </button>
+
+    <button class="btn-sair" onclick="sair()">
+      SAIR
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <div class="topo">
+    <div>
+      <h2>Objetivos da família</h2>
+      <p id="nomeFamilia" style="color:#777;margin:5px 0"></p>
+    </div>
+  </div>
+
+  <section class="resumo">
+
+    <div class="resumo-card">
+      <span>Metas cadastradas</span>
+      <strong id="totalMetas">0</strong>
+    </div>
+
+    <div class="resumo-card">
+      <span>Total desejado</span>
+      <strong id="totalDesejado">R$ 0,00</strong>
+    </div>
+
+    <div class="resumo-card">
+      <span>Total acumulado</span>
+      <strong id="totalAcumulado">R$ 0,00</strong>
+    </div>
+
+  </section>
+
+  <section class="painel">
+
+    <h3>➕ Criar nova meta</h3>
+
+    <form id="formMeta">
+
+      <div class="campo">
+        <label>Nome da meta</label>
+        <input id="titulo" maxlength="100"
+          placeholder="Ex.: Viagem em família" required>
+      </div>
+
+      <div class="campo">
+        <label>Descrição</label>
+        <textarea id="descricao"
+          placeholder="Descreva seu objetivo"></textarea>
+      </div>
+
+      <div class="linha">
+
+        <div class="campo">
+          <label>Valor desejado (R$)</label>
+          <input id="valorAlvo" type="number"
+            min="0.01" step="0.01"
+            placeholder="10000,00" required>
+        </div>
+
+        <div class="campo">
+          <label>Prazo da meta</label>
+          <input id="dataLimite" type="date">
+        </div>
+
+      </div>
+
+      <button id="btnCriar" class="btn-principal" type="submit">
+        CADASTRAR META
+      </button>
+
+    </form>
+
+    <div id="mensagem"></div>
+
+  </section>
+
+  <section class="painel">
+
+    <h3>🎯 Minhas metas</h3>
+
+    <div id="listaMetas" class="lista">
+      <div class="vazio">Carregando metas...</div>
+    </div>
+
+  </section>
+
+  <div class="rodape">
+    Controle Familiar © 2026
+  </div>
+
+</main>
+
+</div>
+
+
+<!-- MODAL DE APORTE -->
+
+<div class="modal" id="modalAporte">
+
+  <div class="modal-conteudo">
+
+    <h3>💰 Registrar valor na meta</h3>
+
+    <p id="aporteNomeMeta" style="color:#777"></p>
+
+    <form id="formAporte">
+
+      <input type="hidden" id="aporteMetaId">
+
+      <div class="campo">
+        <label>Valor do aporte (R$)</label>
+        <input id="aporteValor" type="number"
+          min="0.01" step="0.01"
+          placeholder="Ex.: 250,00" required>
+      </div>
+
+      <div class="campo">
+        <label>Data do aporte</label>
+        <input id="aporteData" type="date" required>
+      </div>
+
+      <div class="campo">
+        <label>Descrição (opcional)</label>
+        <input id="aporteDescricao"
+          placeholder="Ex.: Economia do mês">
+      </div>
+
+      <div class="campo">
+        <label>Como deseja registrar?</label>
+        <select id="aporteModo">
+          <option value="MANUAL">Manual</option>
+          <option value="FINANCEIRO">Integrado ao Financeiro</option>
+        </select>
+      </div>
+
+      <p style="font-size:12px;color:#777;line-height:1.5">
+        No modo integrado, será criado também um lançamento de
+        despesa paga no Financeiro, identificado como aporte para esta meta.
+      </p>
+
+      <div class="modal-acoes">
+        <button type="button" class="btn-secundario"
+          onclick="fecharModal()">CANCELAR</button>
+
+        <button type="submit" id="btnAporte"
+          class="btn-manual">REGISTRAR</button>
+      </div>
+
+    </form>
+
+    <div id="mensagemAporte"></div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+let usuarioAtual = null;
+let familiaId = null;
+let nomeUsuario = "";
+let metasCache = [];
+
+const valorBR = valor => Number(valor || 0).toLocaleString(
+  "pt-BR",
+  {style:"currency",currency:"BRL"}
+);
+
+function hojeISO() {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0,10);
+}
+
+function mostrarMensagem(texto, tipo = "erro") {
+  const el = document.getElementById("mensagem");
+  el.style.color = tipo === "sucesso" ? "#176b35" : "#b42318";
+  el.textContent = texto;
+}
+
+function mostrarMensagemAporte(texto, tipo = "erro") {
+  const el = document.getElementById("mensagemAporte");
+  el.style.color = tipo === "sucesso" ? "#176b35" : "#b42318";
+  el.textContent = texto;
+}
+
+
+// ========================================
+// AUTENTICAÇÃO E PROTEÇÃO
+// ========================================
+
+let verificacaoConcluida = false;
+
+auth.onAuthStateChanged(async function(user) {
+
+  if (verificacaoConcluida) return;
+
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  try {
+
+    usuarioAtual = user;
+
+    const perfil = await db.collection("usuarios")
+      .doc(user.uid).get();
+
+    if (!perfil.exists || !perfil.data().familiaId) {
+      throw new Error("Perfil não encontrado.");
+    }
+
+    const dados = perfil.data();
+    familiaId = dados.familiaId;
+    nomeUsuario = dados.nome || user.email;
+
+    const familia = await db.collection("familias")
+      .doc(familiaId).get();
+
+    if (!familia.exists || familia.data().status !== "ATIVA") {
+      throw new Error("Família desativada ou não encontrada.");
+    }
+
+    const membro = await db.collection("familias")
+      .doc(familiaId)
+      .collection("membros")
+      .doc(user.uid).get();
+
+    if (!membro.exists || membro.data().ativo !== true) {
+      throw new Error("Conta desativada.");
+    }
+
+    document.getElementById("nomeFamilia").textContent =
+      "Família: " + (familia.data().nome || "");
+
+    verificacaoConcluida = true;
+
+    document.getElementById("carregando").style.display = "none";
+    document.getElementById("conteudo").style.display = "block";
+
+    await carregarMetas();
+
+  } catch(erro) {
+
+    console.error("Acesso bloqueado:", erro);
+
+    try {
+      await auth.signOut();
+    } catch(e) {
+      console.error(e);
+    }
+
+    window.location.replace("login.html");
+
+  }
+
+});
+
+
+// ========================================
+// REFERÊNCIAS FIRESTORE
+// ========================================
+
+function metasRef() {
+  return db.collection("familias")
+    .doc(familiaId)
+    .collection("metas");
+}
+
+function aportesRef(metaId) {
+  return metasRef().doc(metaId).collection("aportes");
+}
+
+function financeiroRef() {
+  return db.collection("familias")
+    .doc(familiaId)
+    .collection("financeiro");
+}
+
+
+// ========================================
+// CADASTRAR META
+// ========================================
+
+document.getElementById("formMeta")
+.addEventListener("submit", async function(e) {
+
+  e.preventDefault();
+
+  const botao = document.getElementById("btnCriar");
+
+  const titulo = document.getElementById("titulo").value.trim();
+  const descricao = document.getElementById("descricao").value.trim();
+  const valorAlvo = Number(document.getElementById("valorAlvo").value);
+  const dataLimite = document.getElementById("dataLimite").value;
+
+  if (!titulo || !Number.isFinite(valorAlvo) || valorAlvo <= 0) {
+    mostrarMensagem("Informe o nome e um valor desejado válido.");
+    return;
+  }
+
+  botao.disabled = true;
+  botao.textContent = "SALVANDO...";
+
+  try {
+
+    await metasRef().add({
+      titulo,
+      descricao,
+      valorAlvo,
+      dataLimite: dataLimite || "",
+      status: "ATIVA",
+      criadoPor: usuarioAtual.uid,
+      criadoPorNome: nomeUsuario,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById("formMeta").reset();
+
+    mostrarMensagem("Meta cadastrada com sucesso!", "sucesso");
+
+    await carregarMetas();
+
+  } catch(erro) {
+
+    console.error(erro);
+    mostrarMensagem("Não foi possível cadastrar a meta. Verifique as regras do Firestore.");
+
+  } finally {
+
+    botao.disabled = false;
+    botao.textContent = "CADASTRAR META";
+
+  }
+
+});
+
+
+// ========================================
+// CARREGAR METAS E APORTES
+// ========================================
+
+async function carregarMetas() {
+
+  const lista = document.getElementById("listaMetas");
+
+  lista.innerHTML = '<div class="vazio">Carregando metas...</div>';
+
+  try {
+
+    const snapshot = await metasRef()
+      .orderBy("criadoEm", "desc")
+      .get();
+
+    metasCache = [];
+
+    let totalDesejado = 0;
+    let totalAcumulado = 0;
+
+    for (const doc of snapshot.docs) {
+
+      const meta = {
+        id: doc.id,
+        ...doc.data()
+      };
+
+      const aportes = await aportesRef(doc.id).get();
+
+      meta.aportes = aportes.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      }));
+
+      meta.acumulado = meta.aportes.reduce(
+        (soma, aporte) => soma + Number(aporte.valor || 0), 0
+      );
+
+      totalDesejado += Number(meta.valorAlvo || 0);
+      totalAcumulado += meta.acumulado;
+
+      metasCache.push(meta);
+
+    }
+
+    document.getElementById("totalMetas").textContent =
+      metasCache.length;
+
+    document.getElementById("totalDesejado").textContent =
+      valorBR(totalDesejado);
+
+    document.getElementById("totalAcumulado").textContent =
+      valorBR(totalAcumulado);
+
+    renderizarMetas();
+
+  } catch(erro) {
+
+    console.error(erro);
+
+    lista.innerHTML =
+      '<div class="vazio">Não foi possível carregar as metas. Verifique as regras do Firestore.</div>';
+
+  }
+
+}
+
+
+// ========================================
+// MOSTRAR METAS
+// ========================================
+
+function renderizarMetas() {
+
+  const lista = document.getElementById("listaMetas");
+
+  if (!metasCache.length) {
+    lista.innerHTML =
+      '<div class="vazio">Você ainda não cadastrou nenhuma meta.</div>';
+    return;
+  }
+
+  lista.innerHTML = metasCache.map(meta => {
+
+    const alvo = Number(meta.valorAlvo || 0);
+    const acumulado = Number(meta.acumulado || 0);
+
+    const percentual = alvo > 0
+      ? Math.min((acumulado / alvo) * 100, 100)
+      : 0;
+
+    const concluida = meta.status === "CONCLUIDA";
+
+    const prazo = meta.dataLimite
+      ? new Date(meta.dataLimite + "T12:00:00").toLocaleDateString("pt-BR")
+      : "Não definido";
+
+    return `
+
+      <div class="meta-card">
+
+        <span class="status ${concluida ? "concluida" : ""}">
+          ${concluida ? "CONCLUÍDA" : "EM ANDAMENTO"}
+        </span>
+
+        <h3>${escapar(meta.titulo)}</h3>
+
+        <div class="meta-descricao">
+          ${escapar(meta.descricao || "Sem descrição")}
+        </div>
+
+        <div class="meta-valor">
+          <strong>${valorBR(acumulado)}</strong>
+          <span>de ${valorBR(alvo)}</span>
+        </div>
+
+        <div class="barra">
+          <div class="barra-progresso"
+            style="width:${percentual}%"></div>
+        </div>
+
+        <div class="percentual">
+          ${percentual.toFixed(1).replace(".",",")}%
+        </div>
+
+        <div class="meta-info">
+          📅 Prazo: ${prazo}<br>
+          💰 Aportes: ${meta.aportes.length}
+        </div>
+
+        <div class="acoes">
+
+          ${!concluida ? `
+            <button class="btn-manual"
+              onclick="abrirAporte('${meta.id}')">
+              + APORTAR
+            </button>
+
+            <button class="btn-financeiro"
+              onclick="alternarConclusao('${meta.id}')">
+              CONCLUIR
+            </button>
+          ` : `
+            <button class="btn-secundario"
+              onclick="alternarConclusao('${meta.id}')">
+              REABRIR META
+            </button>
+          `}
+
+          <button class="btn-secundario"
+            onclick="verAportes('${meta.id}')">
+            VER APORTES
+          </button>
+
+          <button class="btn-excluir"
+            onclick="excluirMeta('${meta.id}')">
+            EXCLUIR
+          </button>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }).join("");
+
+}
+
+
+// ========================================
+// ESCAPAR TEXTO HTML
+// ========================================
+
+function escapar(texto) {
+
+  return String(texto ?? "").replace(/[&<>"']/g, function(c) {
+    return {
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[c];
+  });
+
+}
+
+
+// ========================================
+// ABRIR MODAL DE APORTE
+// ========================================
+
+function abrirAporte(metaId) {
+
+  const meta = metasCache.find(m => m.id === metaId);
+
+  if (!meta) return;
+
+  if (meta.status === "CONCLUIDA") {
+    alert("Esta meta já está concluída. Reabra a meta para registrar novos aportes.");
+    return;
+  }
+
+  document.getElementById("aporteMetaId").value = metaId;
+  document.getElementById("aporteNomeMeta").textContent = meta.titulo;
+  document.getElementById("aporteValor").value = "";
+  document.getElementById("aporteData").value = hojeISO();
+  document.getElementById("aporteDescricao").value = "";
+  document.getElementById("aporteModo").value = "MANUAL";
+  document.getElementById("mensagemAporte").textContent = "";
+
+  document.getElementById("modalAporte").style.display = "flex";
+
+}
+
+function fecharModal() {
+  document.getElementById("modalAporte").style.display = "none";
+}
+
+
+// ========================================
+// REGISTRAR APORTE
+// ========================================
+
+document.getElementById("formAporte")
+.addEventListener("submit", async function(e) {
+
+  e.preventDefault();
+
+  const metaId = document.getElementById("aporteMetaId").value;
+  const valor = Number(document.getElementById("aporteValor").value);
+  const data = document.getElementById("aporteData").value;
+  const descricao = document.getElementById("aporteDescricao").value.trim();
+  const modo = document.getElementById("aporteModo").value;
+
+  const botao = document.getElementById("btnAporte");
+
+  const meta = metasCache.find(m => m.id === metaId);
+
+  if (!meta) {
+    mostrarMensagemAporte("Meta não encontrada.");
+    return;
+  }
+
+  if (meta.status === "CONCLUIDA") {
+    mostrarMensagemAporte("Reabra a meta antes de registrar um aporte.");
+    return;
+  }
+
+  if (!Number.isFinite(valor) || valor <= 0 || !data) {
+    mostrarMensagemAporte("Informe um valor e uma data válidos.");
+    return;
+  }
+
+  botao.disabled = true;
+  botao.textContent = "REGISTRANDO...";
+
+  try {
+
+    const batch = db.batch();
+
+    const aporteDoc = aportesRef(metaId).doc();
+
+    const aporte = {
+      valor,
+      data,
+      descricao,
+      modo,
+      criadoPor: usuarioAtual.uid,
+      criadoPorNome: nomeUsuario,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    batch.set(aporteDoc, aporte);
+
+
+    // MODO INTEGRADO AO FINANCEIRO
+    if (modo === "FINANCEIRO") {
+
+      const financeiroDoc = financeiroRef().doc();
+
+      batch.set(financeiroDoc, {
+
+        tipo: "DESPESA",
+        descricao: "Aporte para meta: " + meta.titulo,
+        categoria: "Outros",
+        valor,
+        data,
+        status: "PAGO",
+
+        metaId: metaId,
+        metaAporteId: aporteDoc.id,
+        origem: "META",
+
+        criadoPor: usuarioAtual.uid,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+
+      });
+
+    }
+
+    await batch.commit();
+
+    mostrarMensagemAporte("Aporte registrado com sucesso!", "sucesso");
+
+    await carregarMetas();
+
+    setTimeout(fecharModal, 700);
+
+  } catch(erro) {
+
+    console.error(erro);
+
+    mostrarMensagemAporte(
+      "Não foi possível registrar o aporte. Verifique as regras do Firestore."
+    );
+
+  } finally {
+
+    botao.disabled = false;
+    botao.textContent = "REGISTRAR";
+
+  }
+
+});
+
+
+// ========================================
+// VER HISTÓRICO DE APORTES
+// ========================================
+
+function verAportes(metaId) {
+
+  const meta = metasCache.find(m => m.id === metaId);
+
+  if (!meta) return;
+
+  let texto = "HISTÓRICO DE APORTES\n\n";
+
+  if (!meta.aportes.length) {
+    texto += "Nenhum aporte registrado.";
+  } else {
+
+    meta.aportes
+      .sort((a,b) => String(b.data).localeCompare(String(a.data)))
+      .forEach(a => {
+
+        texto +=
+          new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") +
+          " | " + valorBR(a.valor) +
+          " | " + (a.modo === "FINANCEIRO" ? "Financeiro" : "Manual") +
+          (a.descricao ? " | " + a.descricao : "") +
+          "\n";
+
+      });
+
+    texto += "\nTotal: " + valorBR(meta.acumulado);
+
+  }
+
+  alert(meta.titulo + "\n\n" + texto);
+
+}
+
+
+// ========================================
+// CONCLUIR OU REABRIR META
+// ========================================
+
+async function alternarConclusao(metaId) {
+
+  const meta = metasCache.find(m => m.id === metaId);
+
+  if (!meta) return;
+
+  const novoStatus = meta.status === "CONCLUIDA"
+    ? "ATIVA"
+    : "CONCLUIDA";
+
+  const confirmar = confirm(
+    novoStatus === "CONCLUIDA"
+      ? "Deseja marcar esta meta como concluída?"
+      : "Deseja reabrir esta meta?"
+  );
+
+  if (!confirmar) return;
+
+  try {
+
+    await metasRef().doc(metaId).update({
+      status: novoStatus,
+      atualizadoPor: usuarioAtual.uid,
+      atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await carregarMetas();
+
+  } catch(erro) {
+
+    console.error(erro);
+    alert("Não foi possível atualizar a meta.");
+
+  }
+
+}
+
+
+// ========================================
+// EXCLUIR META
+// ========================================
+
+async function excluirMeta(metaId) {
+
+  const meta = metasCache.find(m => m.id === metaId);
+
+  if (!meta) return;
+
+  if (meta.aportes.length > 0) {
+    alert(
+      "Esta meta possui aportes registrados. " +
+      "Para preservar o histórico financeiro, não é permitido excluí-la."
+    );
+    return;
+  }
+
+  if (!confirm("Deseja realmente excluir a meta " + meta.titulo + "?")) {
+    return;
+  }
+
+  try {
+
+    await metasRef().doc(metaId).delete();
+
+    alert("Meta excluída com sucesso.");
+
+    await carregarMetas();
+
+  } catch(erro) {
+
+    console.error(erro);
+    alert("Não foi possível excluir a meta.");
+
+  }
+
+}
+
+
+// ========================================
+// SAIR
+// ========================================
+
+async function sair() {
+  await auth.signOut();
+  window.location.replace("login.html");
+}
+
+</script>
+
+</body>
+</html>
